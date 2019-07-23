@@ -1,7 +1,7 @@
 .PHONY: run
 .ONESHELL:
 run:
-	@ python function
+	@ python src
 
 .PHONY: test-unit
 .ONESHELL:

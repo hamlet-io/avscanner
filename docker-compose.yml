@@ -17,15 +17,28 @@ services:
       - internal
     restart: on-failure
 
-  function:
-    image: passport-scanner-data-function
-    container_name: passport-scanner-data-function
+  processor:
+    image: passport-scanner-data-processor
+    container_name: passport-scanner-data-processor
     build:
-      context: ./project
+      context: ./project/function/processor
       dockerfile: ./docker/Dockerfile
     depends_on:
       - minio
     volumes:
-      - './project:/project'
+      - './project/function/processor:/processor'
+    networks:
+      - internal
+
+  archiver:
+    image: passport-scanner-data-archiver
+    container_name: passport-scanner-data-archiver
+    build:
+      context: ./project/function/archiver
+      dockerfile: ./docker/Dockerfile
+    depends_on:
+      - minio
+    volumes:
+      - './project/function/archiver:/archiver'
     networks:
       - internal
