@@ -1,6 +1,6 @@
 {
     "dev": {
-        "lambda_handler": "function.handler",
+        "lambda_handler": "src.handler",
         "aws_region": "us-east-1",
         "profile_name": "default",
         "project_name": "project",

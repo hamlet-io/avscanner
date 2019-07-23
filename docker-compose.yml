@@ -24,6 +24,7 @@ services:
       context: ./project/function/processor
       dockerfile: ./docker/Dockerfile
     depends_on:
+      - archiver
       - minio
     volumes:
       - './project/function/processor:/processor'
