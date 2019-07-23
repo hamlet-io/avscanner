@@ -1,5 +1,9 @@
 version: '3.5'
 
+networks:
+  internal:
+    name: passport-scanner-data
+
 services:
   minio:
     image: passport-scanner-data-minio
@@ -9,5 +13,19 @@ services:
       dockerfile: ./Dockerfile
     volumes:
       - ./minio/data:/minio-data
-    network_mode: host
+    networks:
+      - internal
     restart: on-failure
+
+  function:
+    image: passport-scanner-data-function
+    container_name: passport-scanner-data-function
+    build:
+      context: ./project
+      dockerfile: ./docker/Dockerfile
+    depends_on:
+      - minio
+    volumes:
+      - './project:/project'
+    networks:
+      - internal
