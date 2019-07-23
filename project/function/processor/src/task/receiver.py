@@ -1,6 +1,6 @@
 from zappa.asynchronous import task
-from function.task import scanner
-from function.loggers import logging
+from task import scanner
+from loggers import logging
 
 logger = logging.getLogger(__name__)
 

@@ -1,5 +1,5 @@
 from zappa.asynchronous import task
-from function.loggers import logging
+from loggers import logging
 
 logger = logging.getLogger(__name__)
 

@@ -1,4 +1,4 @@
-from function import handler
+from __init__ import handler
 
 handler(
     {

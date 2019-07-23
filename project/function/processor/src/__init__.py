@@ -1,4 +1,4 @@
-from function.task import receiver
+from task import receiver
 
 
 def handler(event, context):

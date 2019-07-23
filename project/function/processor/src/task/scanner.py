@@ -1,7 +1,7 @@
 import random
 from zappa.asynchronous import task
-from function.task import router, validator
-from function.loggers import logging
+from task import router, validator
+from loggers import logging
 
 logger = logging.getLogger(__name__)
 
