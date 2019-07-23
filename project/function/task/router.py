@@ -1,13 +1,16 @@
 from zappa.asynchronous import task
+from function.loggers import logging
+
+logger = logging.getLogger(__name__)
 
 
 @task()
 def handler(event, context):
     if event['file']['virus']:
-        print('Router', 'Saved to quarantine')
+        logger.info('Saved to quarantine')
     elif not event['file']['valid']:
-        print('Router', 'Saved to invalid')
+        logger.info('Saved to invalid')
     else:
-        print('Router', 'Saved to valid')
-    print('Router', 'Removed file from unprocessed bucket')
+        logger.info('Saved to valid')
+    logger.info('Removed file from unprocessed bucket')
     return True
