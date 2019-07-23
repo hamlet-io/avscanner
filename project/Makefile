@@ -1,9 +1,17 @@
 .PHONY: run
 .ONESHELL:
 run:
-	@ DEBUG=True python function
+	@ python function
 
-.PHONY:
+.PHONY: test-unit
 .ONESHELL:
 test-unit:
-	@ python -m tests
+	@ python tests
+
+
+.PHONY: coverage
+.ONESHELL:
+coverage:
+		coverage run -m tests
+		coverage report -m
+		coverage html
