@@ -1,0 +1,10 @@
+{
+    "dev": {
+        "lambda_handler": "function.receiver.handler",
+        "aws_region": "us-east-1",
+        "profile_name": "default",
+        "project_name": "project",
+        "runtime": "python3.7",
+        "s3_bucket": "zappa-4exvu0sb0"
+    }
+}
