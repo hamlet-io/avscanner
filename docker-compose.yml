@@ -28,6 +28,8 @@ services:
     depends_on:
       - archiver
       - minio
+    env_file:
+      - .env
     volumes:
       - './project/function/processor:/processor'
     networks:
@@ -41,6 +43,8 @@ services:
       dockerfile: ./docker/Dockerfile
     depends_on:
       - minio
+    env_file:
+      - .env
     volumes:
       - './project/function/archiver:/archiver'
     networks:

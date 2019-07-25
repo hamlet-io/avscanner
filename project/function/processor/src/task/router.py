@@ -1,16 +1,41 @@
 from zappa.asynchronous import task
 from loggers import logging
+from s3client import client, PROCESSED_BUCKET, UNPROCESSED_BUCKET
+
 
 logger = logging.getLogger(__name__)
+
+QUARANTINE_DIR = 'quarantine'
+VALID_DIR = 'valid'
+INVALID_DIR = 'invalid'
+
+
+def put_object(directory, event):
+    key = "{}/{}/{}/{}/{}/{}".format(
+        directory,
+        event['year'],
+        event['month'],
+        event['day'],
+        event['user'],
+        event['file']['name']
+    )
+    # todo add exception handling
+    client.put_object(
+        Bucket=PROCESSED_BUCKET,
+        Key=key
+    )
+    client.delete_object(
+        Bucket=UNPROCESSED_BUCKET,
+        Key=event['file']['name']
+    )
 
 
 @task()
 def handler(event, context):
     if event['file']['virus']:
-        logger.info('Saved to quarantine')
+        put_object(QUARANTINE_DIR, event)
     elif not event['file']['valid']:
-        logger.info('Saved to invalid')
+        put_object(INVALID_DIR, event)
     else:
-        logger.info('Saved to valid')
-    logger.info('Removed file from unprocessed bucket')
+        put_object(VALID_DIR, event)
     return True
