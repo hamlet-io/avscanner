@@ -25,3 +25,9 @@ Project based on `docker` and `docker-compose`, `make`, therefore, you must have
 To start project you need to:
 1. `cd passport-scanner-data`
 2. `make run`
+
+Then you can simply ssh into function containers:
+1. `make ssh-processor`
+2. `make ssh-archiver`
+
+Inside containers you can find even more makefiles containing handy shortcuts. 
