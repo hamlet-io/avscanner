@@ -2,6 +2,8 @@ import datetime
 from zappa.asynchronous import task
 from loggers import logging
 from task import scanner
+from s3client import UNPROCESSED_BUCKET
+
 
 logger = logging.getLogger(__name__)
 
@@ -14,13 +16,22 @@ class InvalidEvent(Exception):
     pass
 
 
+VALID_S3_EVENT_NAME = 'ObjectCreated:Put'
+
+
 def recast_event(event):
     try:
-        event = event['Records'][0]['s3']
-        key = event['object']['key']
-        bucket = event['bucket']['name']
-        size = event['object']['size']
-        etag = event['object']['eTag']
+        event = event['Records'][0]
+        s3 = event['s3']
+        key = s3['object']['key']
+        bucket = s3['bucket']['name']
+        size = s3['object']['size']
+        etag = s3['object']['eTag']
+        eventName = event['eventName']
+        if eventName != VALID_S3_EVENT_NAME:
+            raise InvalidEvent(f'Invalid event name:{eventName}')
+        if bucket != UNPROCESSED_BUCKET:
+            raise InvalidEvent(f'Invalid bucket name:{bucket}')
     except KeyError as e:
         raise InvalidEvent(f'Event missing:{e}') from e
     except IndexError as e:
@@ -43,7 +54,8 @@ def recast_event(event):
             name=filename,
             size=size,
             hash=etag,
-            bucket=bucket
+            bucket=bucket,
+            key=key
         ),
         year=year,
         month=month,

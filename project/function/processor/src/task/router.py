@@ -11,6 +11,7 @@ INVALID_DIR = 'invalid'
 
 
 def put_object(directory, event):
+    # todo add exception handling
     key = "{}/{}/{}/{}/{}/{}".format(
         directory,
         event['year'],
@@ -19,15 +20,20 @@ def put_object(directory, event):
         event['user'],
         event['file']['name']
     )
-    # todo add exception handling
-    client.put_object(
+    response = client.get_object(
+        Bucket=UNPROCESSED_BUCKET,
+        Key=event['file']['key']
+    )
+    response = client.put_object(
         Bucket=PROCESSED_BUCKET,
-        Key=key
+        Key=key,
+        Body=response['Body'].read()
     )
     client.delete_object(
         Bucket=UNPROCESSED_BUCKET,
-        Key=event['file']['name']
+        Key=event['file']['key']
     )
+    return True
 
 
 @task()

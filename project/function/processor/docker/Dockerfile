@@ -5,6 +5,8 @@ COPY ./docker/install.sh /processor/docker/install.sh
 
 RUN sh processor/docker/install.sh
 
+COPY ./docker/clamd.conf /etc/clamav/clamd.conf
+
 COPY . /processor
 
 WORKDIR /processor
