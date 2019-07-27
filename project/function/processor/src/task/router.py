@@ -1,6 +1,12 @@
 from zappa.asynchronous import task
 from loggers import logging
-from s3client import client, PROCESSED_BUCKET, UNPROCESSED_BUCKET
+from s3client import (
+    client,
+    PROCESSED_BUCKET,
+    UNPROCESSED_BUCKET,
+    get_unprocessed_file_object,
+    FileChangedError
+)
 
 
 logger = logging.getLogger(__name__)
@@ -12,6 +18,10 @@ INVALID_DIR = 'invalid'
 
 def put_object(directory, event):
     # todo add exception handling
+    try:
+        response = get_unprocessed_file_object(event)
+    except FileChangedError:
+        return True
     key = "{}/{}/{}/{}/{}/{}".format(
         directory,
         event['year'],
@@ -19,10 +29,6 @@ def put_object(directory, event):
         event['day'],
         event['user'],
         event['file']['name']
-    )
-    response = client.get_object(
-        Bucket=UNPROCESSED_BUCKET,
-        Key=event['file']['key']
     )
     response = client.put_object(
         Bucket=PROCESSED_BUCKET,

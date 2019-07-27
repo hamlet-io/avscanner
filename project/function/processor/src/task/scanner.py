@@ -1,8 +1,7 @@
-import random
 import subprocess
 from zappa.asynchronous import task
 from task import router, validator
-from s3client import client, UNPROCESSED_BUCKET
+from s3client import FileChangedError, get_unprocessed_file_object
 from loggers import logging
 
 
@@ -12,10 +11,7 @@ SCANNED_FILE_DOWNLOAD_PATH = '/tmp/scan'
 
 
 def download_file(event):
-    resp = client.get_object(
-        Bucket=UNPROCESSED_BUCKET,
-        Key=event['file']['key']
-    )
+    resp = get_unprocessed_file_object(event)
     with open(SCANNED_FILE_DOWNLOAD_PATH, 'wb') as f:
         f.write(resp['Body'].read())
 
@@ -24,7 +20,7 @@ def is_virus():
     result = subprocess.run(
         ['clamdscan', SCANNED_FILE_DOWNLOAD_PATH, '--no-summary'],
         capture_output=True,
-        encoding='utf-8'
+        encoding='utf8'
     )
     result = result.stdout.split('\n')[0]
     if result.endswith('OK'):
@@ -37,7 +33,10 @@ def is_virus():
 
 @task()
 def handler(event, context):
-    download_file(event)
+    try:
+        download_file(event)
+    except FileChangedError:
+        return True
     virus = is_virus()
     event['file']['virus'] = virus
     logger.info(event)
