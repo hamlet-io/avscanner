@@ -1,8 +1,8 @@
 import os
 import json
+import pytest
 import boto3
 from botocore.exceptions import ClientError
-import pytest
 
 
 S3_CONFIG = dict(
@@ -11,7 +11,16 @@ S3_CONFIG = dict(
     aws_secret_access_key=os.environ['AWS_S3_SECRET_ACCESS_KEY']
 )
 
-UNPROCESSED_BUCKET_NAME = os.environ['UNPROCESSED_BUCKET_NAME']
+
+UNPROCESSED_BUCKET = os.environ['UNPROCESSED_BUCKET_NAME']
+PROCESSED_BUCKET = os.environ['PROCESSED_BUCKET_NAME']
+VALID_DIR = os.environ['VALID_DIR']
+INVALID_DIR = os.environ['INVALID_DIR']
+QUARANTINE_DIR = os.environ['QUARANTINE_DIR']
+
+
+def filename_to_bucket_key(filename):
+    return filename.replace('-', '/')
 
 
 @pytest.fixture
@@ -24,8 +33,8 @@ def fill_buckets():
     for filename in os.listdir(dirname):
         with open(os.path.join(dirname, filename), 'rb') as f:
             client.put_object(
-                Key=filename.replace('-', '/'),
-                Bucket='unprocessed',
+                Key=filename_to_bucket_key(filename),
+                Bucket=UNPROCESSED_BUCKET,
                 Body=f
             )
 
@@ -36,8 +45,8 @@ def clear_buckets():
         's3',
         **S3_CONFIG
     )
-    processed = s3.Bucket(os.environ['PROCESSED_BUCKET_NAME'])
-    unprocessed = s3.Bucket(os.environ['UNPROCESSED_BUCKET_NAME'])
+    processed = s3.Bucket(PROCESSED_BUCKET)
+    unprocessed = s3.Bucket(UNPROCESSED_BUCKET)
     processed.objects.all().delete()
     unprocessed.objects.all().delete()
 
@@ -49,13 +58,12 @@ def s3_events_dict():
     client = boto3.client('s3', **S3_CONFIG)
     for filename in os.listdir(dirname):
         with open(os.path.join(dirname, filename)) as f:
-            name, extension = os.path.splitext(filename)
             event = json.loads(f.read())
-            events['put'][name] = event
+            events['put'][filename] = event
             try:
                 response = client.get_object(
-                    Bucket=UNPROCESSED_BUCKET_NAME,
-                    Key=filename.replace('-', '/')
+                    Bucket=UNPROCESSED_BUCKET,
+                    Key=filename_to_bucket_key(filename)
                 )
                 # updating event props
                 event = event['Records'][0]
@@ -65,3 +73,8 @@ def s3_events_dict():
                 if e.response['Error']['Code'] == 'NoSuchKey':
                     pass
     return events
+
+
+@pytest.fixture
+def s3client():
+    return boto3.client('s3', **S3_CONFIG)

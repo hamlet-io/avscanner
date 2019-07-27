@@ -1,3 +1,4 @@
+import os
 from zappa.asynchronous import task
 from loggers import logging
 from s3client import (
@@ -11,9 +12,9 @@ from s3client import (
 
 logger = logging.getLogger(__name__)
 
-QUARANTINE_DIR = 'quarantine'
-VALID_DIR = 'valid'
-INVALID_DIR = 'invalid'
+QUARANTINE_DIR = os.environ['QUARANTINE_DIR']
+VALID_DIR = os.environ['VALID_DIR']
+INVALID_DIR = os.environ['INVALID_DIR']
 
 
 def put_object(directory, event):
