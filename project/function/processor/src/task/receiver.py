@@ -39,11 +39,13 @@ def recast_event(event):
     try:
         year, month, day, user, filename = key.split('/')
     except ValueError as e:
-        raise InvalidObjectKeyFormat("Invalid key format") from e
+        raise InvalidObjectKeyFormat(f"Invalid key format:{key}") from e
     try:
         year, month, day = int(year), int(month), int(day)
     except ValueError as e:
-        raise InvalidObjectKeyFormat('Invalid date component format, must be integer') from e
+        raise InvalidObjectKeyFormat(
+            f'Invalid date component format:year={year} month={month} day={day}'
+        ) from e
     try:
         datetime.datetime(year, month, day).date()
     except ValueError as e:
@@ -67,13 +69,14 @@ def recast_event(event):
 def handler(event, context):
     try:
         event = recast_event(event)
-    except InvalidObjectKeyFormat:
+    except InvalidObjectKeyFormat as e:
         # do nothing for now but in future we may move file to another "dir"
+        logger.exception(e)
         return True
-    except InvalidEvent:
+    except InvalidEvent as e:
         # do nothing because can't handle this event
+        logger.exception(e)
         return True
-
     logger.info(event)
     scanner.handler(event, context)
     return True

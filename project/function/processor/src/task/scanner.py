@@ -8,6 +8,11 @@ from loggers import logging
 logger = logging.getLogger(__name__)
 
 SCANNED_FILE_DOWNLOAD_PATH = '/tmp/scan'
+MAX_FILE_SIZE = 1024 * 1024 * 400  # 400 MB
+
+
+def is_file_too_large(event):
+    return event['file']['size'] > MAX_FILE_SIZE
 
 
 def download_file(event):
@@ -33,9 +38,14 @@ def is_virus():
 
 @task()
 def handler(event, context):
+    if is_file_too_large(event):
+        event['file']['virus'] = True
+        router.handler(event, context)
+        return True
     try:
         download_file(event)
     except FileChangedError:
+        # Stop if file changed
         return True
     virus = is_virus()
     event['file']['virus'] = virus

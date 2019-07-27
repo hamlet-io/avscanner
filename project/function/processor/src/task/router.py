@@ -21,6 +21,7 @@ def put_object(directory, event):
     try:
         response = get_unprocessed_file_object(event)
     except FileChangedError:
+        # Stop if file changed
         return True
     key = "{}/{}/{}/{}/{}/{}".format(
         directory,
@@ -39,6 +40,8 @@ def put_object(directory, event):
         Bucket=UNPROCESSED_BUCKET,
         Key=event['file']['key']
     )
+    if directory == QUARANTINE_DIR:
+        logger.warn(f'Virus found and placed to quarantine. Filename:{key}')
     return True
 
 

@@ -8,6 +8,12 @@ from loggers import logging
 logger = logging.getLogger(__name__)
 
 
+def is_json_scheme_valid(data):
+    # todo
+    # add json scheme validation
+    return True
+
+
 def is_valid(data):
     try:
         data = data.decode('utf8')
@@ -17,7 +23,7 @@ def is_valid(data):
         data = json.loads(data)
     except ValueError:
         return False
-    return True
+    return is_json_scheme_valid(data)
 
 
 @task()
