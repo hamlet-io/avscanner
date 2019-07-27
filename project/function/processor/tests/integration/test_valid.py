@@ -7,6 +7,6 @@ from src import handler
     "fill_buckets"
 )
 def test(s3_events_dict):
-    handler(s3_events_dict['put-valid'], {})
-    handler(s3_events_dict['put-virus'], {})
-    handler(s3_events_dict['put-invalid'], {})
+    handler(s3_events_dict['put']['2019-1-1-testuser-valid'], {})
+    handler(s3_events_dict['put']['2019-1-2-testuser-invalid'], {})
+    handler(s3_events_dict['put']['2019-1-3-testuser-virus'], {})

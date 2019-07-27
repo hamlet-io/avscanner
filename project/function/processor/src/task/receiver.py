@@ -53,7 +53,7 @@ def recast_event(event):
         file=dict(
             name=filename,
             size=size,
-            hash=etag,
+            etag=etag,
             bucket=bucket,
             key=key
         ),
