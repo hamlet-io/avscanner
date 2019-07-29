@@ -11,6 +11,10 @@ SCANNED_FILE_DOWNLOAD_PATH = '/tmp/scan'
 MAX_FILE_SIZE = 1024 * 1024 * 400  # 400 MB
 
 
+class UnknownClamavResult(Exception):
+    pass
+
+
 def is_file_too_large(event):
     return event['file']['size'] > MAX_FILE_SIZE
 
@@ -32,8 +36,7 @@ def is_virus():
         return False
     elif result.endswith('FOUND'):
         return True
-    # todo: handle unknown clamav response
-    raise Exception()
+    raise UnknownClamavResult(result.stdout)
 
 
 @task()
@@ -47,7 +50,14 @@ def handler(event, context):
     except FileChangedError:
         # Stop if file changed
         return True
-    virus = is_virus()
+    try:
+        virus = is_virus()
+    except UnknownClamavResult as e:
+        logger.error('Unknown clamav result. Moving file to quarantine.')
+        logger.exception(e)
+        event['file']['virus'] = True
+        router.handler(event, context)
+        return True
     event['file']['virus'] = virus
     logger.info(event)
     if virus:
