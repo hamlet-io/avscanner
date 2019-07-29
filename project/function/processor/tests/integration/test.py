@@ -1,6 +1,9 @@
 import os
+import io
+import json
 import pytest
-from src import handler
+from src import handler, s3client as lambda_s3client
+from src.task import receiver
 from tests.integration.conftest import (
     PROCESSED_BUCKET,
     UNPROCESSED_BUCKET,
@@ -57,3 +60,39 @@ def test(s3_events_dict, s3client):
         PROCESSED_BUCKET,
         os.path.join(QUARANTINE_DIR, bucket_filename)
     )
+
+
+@pytest.mark.usefixtures(
+    "clear_buckets",
+    "fill_buckets"
+)
+def test_get_unprocessed_file_object_modified_error(s3client, s3_events_dict):
+    # must raise file changed error if file removed or modified
+    event_name = '2019-1-1-testuser-valid.json'
+    event = receiver.recast_event(s3_events_dict['put'][event_name])
+    # first time must be succesfull because file unchanged
+    body = json.loads(lambda_s3client.get_unprocessed_file_object(event)['Body'].read())
+    s3client.put_object(
+        Bucket=event['file']['bucket'],
+        Key=event['file']['key'],
+        Body=io.BytesIO(json.dumps(body).encode('utf8'))
+    )
+    # second time should fail with original event because file modified
+    with pytest.raises(lambda_s3client.FileChangedError):
+        lambda_s3client.get_unprocessed_file_object(event)
+    response = s3client.get_object(
+        Bucket=event['file']['bucket'],
+        Key=event['file']['key']
+    )
+    # Updating etag to make event point to current file verison
+    event['file']['etag'] = response['ETag']
+    lambda_s3client.get_unprocessed_file_object(event)
+
+    # Deleting object
+    s3client.delete_object(
+        Bucket=event['file']['bucket'],
+        Key=event['file']['key']
+    )
+    # Deleted = modified
+    with pytest.raises(lambda_s3client.FileChangedError):
+        lambda_s3client.get_unprocessed_file_object(event)
