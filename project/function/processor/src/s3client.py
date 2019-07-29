@@ -32,7 +32,9 @@ def get_unprocessed_file_object(event):
         )
         return response
     except ClientError as e:
-        status_code = e.response['ResponseMetadata']['HTTPStatusCode']
-        if status_code == HTTPStatus.PRECONDITION_FAILED:
+        # file absence treated in the same way as file change because technically it is the same thing
+        file_changed = e.response['ResponseMetadata']['HTTPStatusCode'] == HTTPStatus.PRECONDITION_FAILED
+        file_not_found = e.response['Error']['Code'] == 'NoSuchKey'
+        if file_changed or file_not_found:
             raise FileChangedError() from e
         raise

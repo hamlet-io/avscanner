@@ -52,7 +52,7 @@ def put_object(directory, event):
 
 @task()
 def handler(event, context):
-    if event['file']['error']:
+    if event['error']:
         put_object(posixpath.join(ERROR_DIR, event['file']['error']), event)
     elif event['file']['virus']:
         put_object(QUARANTINE_DIR, event)

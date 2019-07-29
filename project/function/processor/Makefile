@@ -6,10 +6,10 @@ run:
 .PHONY: test-unit
 .ONESHELL:
 test-unit:
-	@ pytest tests/unit
+	@ pytest tests/unit -vv
 
 test-integration:
-	@ pytest tests/integration
+	@ pytest tests/integration -vv
 
 
 .PHONY: coverage

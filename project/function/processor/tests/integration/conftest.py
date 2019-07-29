@@ -71,7 +71,7 @@ def s3_events_dict():
                 event['s3']['object']['size'] = response['ContentLength']
             except ClientError as e:
                 if e.response['Error']['Code'] == 'NoSuchKey':
-                    pass
+                    continue
     return events
 
 

@@ -62,6 +62,6 @@ def handler(event, context):
         return True
     except UnknownClamavResult as e:
         logger.exception(e)
-        event['file']['error'] = UnknownClamavResult.__name__
+        event['error'] = UnknownClamavResult.__name__
         router.handler(event, context)
         return True
