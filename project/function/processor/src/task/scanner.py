@@ -5,7 +5,7 @@ from s3client import FileChangedError, get_unprocessed_file_object
 from loggers import logging
 
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("SCANNER")
 
 SCANNED_FILE_DOWNLOAD_PATH = '/tmp/scan'
 MAX_FILE_SIZE = 1024 * 1024 * 400  # 400 MB
@@ -27,14 +27,14 @@ def download_file(event):
 
 def is_virus():
     result = subprocess.run(
-        ['clamdscan', SCANNED_FILE_DOWNLOAD_PATH, '--no-summary'],
+        ['clamdscan', SCANNED_FILE_DOWNLOAD_PATH],
         capture_output=True,
         encoding='utf8'
     )
-    result = result.stdout.split('\n')[0]
-    if result.endswith('OK'):
+    file_status = result.stdout.split('\n')[0]
+    if file_status.endswith('OK'):
         return False
-    elif result.endswith('FOUND'):
+    elif file_status.endswith('FOUND'):
         return True
     raise UnknownClamavResult(result.stdout)
 
@@ -43,24 +43,25 @@ def is_virus():
 def handler(event, context):
     if is_file_too_large(event):
         event['file']['virus'] = True
+        logger.warn('The file is too large. Cannot check on viruses. Treated as a virus.')
         router.handler(event, context)
         return True
     try:
         download_file(event)
     except FileChangedError:
-        # Stop if file changed
+        logger.warn('File changed during processing. Stopping.')
         return True
     try:
         virus = is_virus()
+        event['file']['virus'] = virus
+        logger.info(f'File:{event["file"]["key"]} is{"" if virus else " not"} a virus')
+        if virus:
+            router.handler(event, context)
+        else:
+            validator.handler(event, context)
+        return True
     except UnknownClamavResult as e:
-        logger.error('Unknown clamav result. Moving file to quarantine.')
         logger.exception(e)
-        event['file']['virus'] = True
+        event['file']['error'] = UnknownClamavResult.__name__
         router.handler(event, context)
         return True
-    event['file']['virus'] = virus
-    logger.info(event)
-    if virus:
-        router.handler(event, context)
-    else:
-        validator.handler(event, context)

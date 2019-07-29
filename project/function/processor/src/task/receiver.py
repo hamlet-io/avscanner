@@ -5,7 +5,7 @@ from task import scanner
 from s3client import UNPROCESSED_BUCKET
 
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("RECEIVER")
 
 
 class InvalidObjectKeyFormat(Exception):
@@ -57,7 +57,8 @@ def recast_event(event):
             size=size,
             etag=etag,
             bucket=bucket,
-            key=key
+            key=key,
+            error=None
         ),
         year=year,
         month=month,
@@ -69,6 +70,7 @@ def recast_event(event):
 def handler(event, context):
     try:
         event = recast_event(event)
+        logger.info(f'File: {event["file"]["key"]}')
     except InvalidObjectKeyFormat as e:
         # do nothing for now but in future we may move file to another "dir"
         logger.exception(e)
@@ -77,6 +79,5 @@ def handler(event, context):
         # do nothing because can't handle this event
         logger.exception(e)
         return True
-    logger.info(event)
     scanner.handler(event, context)
     return True

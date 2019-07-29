@@ -17,27 +17,27 @@ if SENTRY_DSN:  # pragma: no cover
 
 LOGGING = {
     'version': 1,
+    'disableExistingLoggers': False,
     'formatters': {
-        'verbose': {
-            'format': '%(levelname)s[%(name)s] %(message)s'
+        'default': {
+            'format': '[%(levelname)s] %(name)s: %(message)s'
         }
     },
     'handlers': {
         'console': {
             'level': 'DEBUG',
             'class': 'logging.StreamHandler',
-            'formatter': 'verbose',
+            'formatter': 'default',
+        },
+    },
+    'loggers': {
+        '': {
+            'level': 'INFO',
+            'handlers': ['console'],
         }
-    },
-    'root': {
-        'handlers': ['console'],
-        'level': 'INFO',
-    },
-    '': {
-        'handlers': ['console'],
-        'level': 'INFO',
-    },
+    }
 }
+
 
 dictConfig(LOGGING)
 

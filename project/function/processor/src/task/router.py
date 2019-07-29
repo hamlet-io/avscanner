@@ -1,4 +1,5 @@
 import os
+import posixpath
 from zappa.asynchronous import task
 from loggers import logging
 from s3client import (
@@ -10,27 +11,28 @@ from s3client import (
 )
 
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("ROUTER")
 
 QUARANTINE_DIR = os.environ['QUARANTINE_DIR']
 VALID_DIR = os.environ['VALID_DIR']
 INVALID_DIR = os.environ['INVALID_DIR']
+ERROR_DIR = os.environ['ERROR_DIR']
 
 
 def put_object(directory, event):
-    # todo add exception handling
+    # todo add boto3 exception handling
     try:
         response = get_unprocessed_file_object(event)
     except FileChangedError:
-        # Stop if file changed
+        logger.warn('File changed during processing. Stopping.')
         return True
-    key = "{}/{}/{}/{}/{}/{}".format(
-        directory,
-        event['year'],
-        event['month'],
-        event['day'],
-        event['user'],
-        event['file']['name']
+    key = posixpath.join(
+        str(directory),
+        str(event['year']),
+        str(event['month']),
+        str(event['day']),
+        str(event['user']),
+        str(event['file']['name'])
     )
     response = client.put_object(
         Bucket=PROCESSED_BUCKET,
@@ -42,13 +44,17 @@ def put_object(directory, event):
         Key=event['file']['key']
     )
     if directory == QUARANTINE_DIR:
-        logger.warn(f'Virus found and placed to quarantine. Filename:{key}')
+        logger.warn(f'Virus isolated:{key}')
+    else:
+        logger.info(f'File saved: {key}')
     return True
 
 
 @task()
 def handler(event, context):
-    if event['file']['virus']:
+    if event['file']['error']:
+        put_object(posixpath.join(ERROR_DIR, event['file']['error']), event)
+    elif event['file']['virus']:
         put_object(QUARANTINE_DIR, event)
     elif not event['file']['valid']:
         put_object(INVALID_DIR, event)

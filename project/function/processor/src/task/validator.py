@@ -5,12 +5,11 @@ from task import router
 from loggers import logging
 
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("VALIDATOR")
 
 
 def is_json_scheme_valid(data):
-    # todo
-    # add json scheme validation
+    # TODO: add json scheme validation
     return True
 
 
@@ -31,7 +30,9 @@ def handler(event, context):
     try:
         file_object = get_unprocessed_file_object(event)
     except FileChangedError:
+        logger.warn('File changed during processing. Stopping.')
         return True
-    event['file']['valid'] = is_valid(file_object['Body'].read())
-    logger.info(event)
+    valid = is_valid(file_object['Body'].read())
+    logger.info(f'File:{event["file"]["key"]} is{"" if valid else " not"} valid')
+    event['file']['valid'] = valid
     router.handler(event, context)
