@@ -6,8 +6,8 @@ networks:
 
 services:
   minio:
-    image: passport-scanner-data-minio
-    container_name: passport-scanner-data-minio
+    image: psd-minio
+    container_name: psd-minio
     build:
       context: ./minio
       dockerfile: ./Dockerfile
@@ -19,33 +19,62 @@ services:
       - internal
     restart: on-failure
 
-  processor:
-    image: passport-scanner-data-processor
-    container_name: passport-scanner-data-processor
+  elasticmq:
+    image: psd-elasticmq
+    container_name: psd-elasticmq
     build:
-      context: ./project/function/processor
-      dockerfile: ./docker/Dockerfile
+      context: ./minio
+      dockerfile: ./Dockerfile
+    ports:
+      - '9324:9324'
+    networks:
+      - internal
+    restart: on-failure
+
+  validator:
+    image: psd-validator
+    container_name: psd-validator
+    build:
+      context: ./project/validator
+      dockerfile: ./docker/dev/Dockerfile
     depends_on:
-      - archiver
       - minio
+      - elasticmq
     env_file:
       - .env
     volumes:
-      - './project/function/processor:/processor'
+      - './project/validator:/validator'
+    networks:
+      - internal
+
+  virus-scanner:
+    image: psd-virus-scanner
+    container_name: psd-virus-scanner
+    build:
+      context: ./project/validator
+      dockerfile: ./docker/dev/Dockerfile
+    depends_on:
+      - minio
+      - elasticmq
+    env_file:
+      - .env
+    volumes:
+      - './project/virus-scanner:/virus-scanner'
     networks:
       - internal
 
   archiver:
-    image: passport-scanner-data-archiver
-    container_name: passport-scanner-data-archiver
+    image: psd-archiver
+    container_name: psd-archiver
     build:
-      context: ./project/function/archiver
-      dockerfile: ./docker/Dockerfile
+      context: ./project/archiver
+      dockerfile: ./docker/dev/Dockerfile
     depends_on:
       - minio
+      - elasticmq
     env_file:
       - .env
     volumes:
-      - './project/function/archiver:/archiver'
+      - './project/archiver:/archiver'
     networks:
       - internal
