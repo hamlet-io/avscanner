@@ -35,7 +35,7 @@ Using a dedicated bucket for this process ensures that a malicious file can not 
 
 ### Archive
 
-The archive is where the data is stored. When an object is received from the anti virus scanning processor in a dedicated prefix in the archive an S3 Event notification adds an event in the data validation processor queue
+The archive is where the data is stored. When an object is received from the anti virus scanning processor under a dedicated prefix in the archive an S3 Event notification adds an event in the data validation processor queue
 
 ### Data Validation
 
@@ -51,11 +51,13 @@ On a timed schedule the archive worker is invoked which collects files in the ar
 
 All workers in this solution will be deployed using docker based images. This provides maximum compatibility between the local development experience and the AWS deployment.
 
-Queue based workers will be deployed as Fargate ECS services. The services will be configure with an autoscaling policy which tracks the length of the queue that the worker consumes. If there are no item in the queue no tasks will be running in the service. When an item is added to the queue a new task will start which will be initialised and poll the queue processing as many tasks as it can. When the queue has been empty for a length of time the tasks will be stopped again.
+Queue based workers will be deployed as Fargate ECS services. The services will be configure with an autoscaling policy which tracks the length of the queue that the worker consumes. If there are no items in the queue no tasks will be running in the service. When an item is added to the queue a new task will start which will be initialised and poll the queue processing as many tasks as it can. When the queue has been empty for a length of time the tasks will be stopped.
 
-This approach allows for long setup processes such as AV definition updating while also considering the cost of unused resources, tasks are only active when there is work to do.
+Additonal workers will be added based on the queue length reaching stepped thresholds
 
-Time based workers will be Fargate ECS Tasks which are invoked using CloudWatch Events. This provides a standard way to invoke the tasks without having to maintain a scheduling service.
+This approach allows for long setup processes such as AV definition updates while also considering the cost of unused resources, tasks are only active when there is work to do.
+
+Time based workers will be executed as Fargate ECS Tasks, invoked using CloudWatch Events. This provides a standard way to invoke the tasks without having to maintain a scheduling service.
 
 ### Worker Queue Items
 
