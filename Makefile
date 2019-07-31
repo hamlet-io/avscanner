@@ -4,13 +4,19 @@ run:
 	@ docker-compose up --build --remove-orphans
 
 
-.PHONY: run
+.PHONY: ssh-validator
 .ONESHELL:
-ssh-processor:
-	@ docker container exec -it passport-scanner-data-processor /bin/sh
+ssh-validator:
+	@ docker container exec -it psd-validator /bin/sh
 
 
-.PHONY: run
+.PHONY: ssh-archiver
 .ONESHELL:
 ssh-archiver:
-	@ docker container exec -it passport-scanner-data-archiver /bin/sh
+	@ docker container exec -it psd-archiver /bin/sh
+
+
+.PHONY: ssh-virus-scanner
+.ONESHELL:
+ssh-virus-scanner:
+	@ docker container exec -it psd-virus-scanner /bin/sh

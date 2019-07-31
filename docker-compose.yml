@@ -31,12 +31,28 @@ services:
       - internal
     restart: on-failure
 
+  common:
+      image: psd-common
+      container_name: psd-common
+      build:
+        context: ./project
+        dockerfile: ./common/docker/dev/Dockerfile
+      depends_on:
+        - minio
+        - elasticmq
+      env_file:
+        - .env
+      volumes:
+        - './project/common:/common'
+      networks:
+        - internal
+
   validator:
     image: psd-validator
     container_name: psd-validator
     build:
-      context: ./project/validator
-      dockerfile: ./docker/dev/Dockerfile
+      context: ./project
+      dockerfile: ./validator/docker/dev/Dockerfile
     depends_on:
       - minio
       - elasticmq
@@ -44,6 +60,7 @@ services:
       - .env
     volumes:
       - './project/validator:/validator'
+      - './project/common/src:/common/src'
     networks:
       - internal
 
@@ -51,8 +68,8 @@ services:
     image: psd-virus-scanner
     container_name: psd-virus-scanner
     build:
-      context: ./project/validator
-      dockerfile: ./docker/dev/Dockerfile
+      context: ./project
+      dockerfile: ./virus-scanner/docker/dev/Dockerfile
     depends_on:
       - minio
       - elasticmq
@@ -60,6 +77,7 @@ services:
       - .env
     volumes:
       - './project/virus-scanner:/virus-scanner'
+      - './project/common:/common'
     networks:
       - internal
 
@@ -67,8 +85,8 @@ services:
     image: psd-archiver
     container_name: psd-archiver
     build:
-      context: ./project/archiver
-      dockerfile: ./docker/dev/Dockerfile
+      context: ./project
+      dockerfile: ./archiver/docker/dev/Dockerfile
     depends_on:
       - minio
       - elasticmq
@@ -76,5 +94,6 @@ services:
       - .env
     volumes:
       - './project/archiver:/archiver'
+      - './project/common:/common'
     networks:
       - internal

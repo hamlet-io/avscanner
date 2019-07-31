@@ -1,3 +1,3 @@
 import pytest
 
-pytest.main(['/archiver/tests/unit', '-x'])
+pytest.main(['tests/unit', '-x'])

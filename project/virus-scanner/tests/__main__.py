@@ -1,3 +1,3 @@
 import pytest
 
-pytest.main(['/processor/tests', '-x'])
+pytest.main(['tests/unit', '-x'])

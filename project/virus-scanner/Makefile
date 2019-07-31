@@ -8,6 +8,8 @@ run:
 test-unit:
 	@ pytest tests/unit -vv
 
+.PHONY: test-integration
+.ONESHELL:
 test-integration:
 	@ pytest tests/integration -vv
 
