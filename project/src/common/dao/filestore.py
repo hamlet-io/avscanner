@@ -6,9 +6,9 @@ from botocore.exceptions import ClientError
 class FileStore:
 
     def __init__(self, bucket=None, connection_conf=None):
-        s3 = boto3.resource('s3', **connection_conf)
-        self.exceptions = s3.meta.client.exceptions
-        self.bucket = s3.Bucket(bucket)
+        self.s3 = boto3.resource('s3', **connection_conf)
+        self.exceptions = self.s3.meta.client.exceptions
+        self.bucket = self.s3.Bucket(bucket)
 
     def get(
         self,
@@ -66,3 +66,32 @@ class FileStore:
             object.download_file(
                 Filename=path
             )
+
+    def copy(
+        self,
+        key=None,
+        target_bucket=None,
+        target_key=None
+    ):
+        copy_source = dict(
+            Key=key,
+            Bucket=self.bucket.name
+        )
+        if target_bucket:
+            target_bucket = self.s3.Bucket(target_bucket)
+            target_bucket.Object(key=target_key).copy(copy_source)
+        else:
+            self.bucket.Object(key=target_key).copy(copy_source)
+
+    def move(
+        self,
+        key=None,
+        target_bucket=None,
+        target_key=None
+    ):
+        self.copy(
+            key=key,
+            target_key=target_key,
+            target_bucket=target_bucket
+        )
+        self.bucket.Object(key=key).delete()
