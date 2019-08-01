@@ -23,7 +23,7 @@ services:
     image: psd-elasticmq
     container_name: psd-elasticmq
     build:
-      context: ./minio
+      context: ./elasticmq
       dockerfile: ./Dockerfile
     ports:
       - '9324:9324'
