@@ -12,10 +12,27 @@ VALID_BUCKETS = [
     QUARANTINE_BUCKET
 ]
 
+VALIDATION_QUEUE = os.environ['VALIDATION_QUEUE_NAME']
+VIRUS_SCANNING_QUEUE = os.environ['VIRUS_SCANNING_QUEUE_NAME']
+
+VALID_QUEUES = [
+    VALIDATION_QUEUE,
+    VIRUS_SCANNING_QUEUE
+]
+
 S3_CONNECTION_DATA = dict(
     aws_access_key_id=os.environ['AWS_S3_ACCESS_KEY_ID'],
     aws_secret_access_key=os.environ['AWS_S3_SECRET_ACCESS_KEY'],
-    endpoint_url=os.environ['AWS_S3_ENDPOINT_URL']
+    endpoint_url=os.environ['AWS_S3_ENDPOINT_URL'],
+    region_name=os.environ['AWS_S3_REGION']
+)
+
+
+SQS_CONNECTION_DATA = dict(
+    aws_access_key_id=os.environ['AWS_SQS_ACCESS_KEY_ID'],
+    aws_secret_access_key=os.environ['AWS_SQS_SECRET_ACCESS_KEY'],
+    endpoint_url=os.environ['AWS_SQS_ENDPOINT_URL'],
+    region_name=os.environ['AWS_SQS_REGION']
 )
 
 
@@ -36,6 +53,20 @@ def create_buckets():
 
     for name in VALID_BUCKETS:
         create(name)
+
+
+@pytest.fixture(scope='function')
+def clear_queues():
+    sqs = boto3.resource('sqs', **SQS_CONNECTION_DATA)
+
+    def clear(name):
+        queue = sqs.get_queue_by_name(
+            QueueName=name
+        )
+        queue.purge()
+
+    for queue in VALID_QUEUES:
+        clear(queue)
 
 
 @pytest.fixture(scope='function')
