@@ -1,0 +1,2 @@
+class ValidatorWorker():
+    pass
