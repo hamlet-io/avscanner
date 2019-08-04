@@ -20,9 +20,10 @@ RECURSIVE_DOWNLOAD_PATH = '/tmp'
 
 
 @pytest.mark.usefixtures(
-    'clear_buckets'
+    'clear_buckets',
+    'fill_unprocessed_bucket'
 )
-def test():
+def test(unprocessed_bucket_events):
     filestore = FileStore(
         bucket=BUCKET,
         connection_conf=S3_CONNECTION_DATA

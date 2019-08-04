@@ -1,6 +1,13 @@
 import os
+import string
+import json
+import posixpath
 import boto3
 import pytest
+
+TEST_FILES_DIR = 'tests/data/file'
+TEST_PUT_EVENT_TEMPLATE_FILE = 'tests/data/event/put/template.json'
+
 
 ARCHIVE_BUCKET = os.environ['ARCHIVE_BUCKET_NAME']
 UNPROCESSED_BUCKET = os.environ['UNPROCESSED_BUCKET_NAME']
@@ -78,6 +85,42 @@ def clear_buckets():
 
     for name in VALID_BUCKETS:
         clear(name)
+
+
+@pytest.fixture(scope='function')
+def fill_unprocessed_bucket():
+    s3 = boto3.resource('s3', **S3_CONNECTION_DATA)
+    files = os.listdir(TEST_FILES_DIR)
+    for filename in files:
+        realname = os.path.join(TEST_FILES_DIR, filename)
+        key = posixpath.join(*filename.split('-'))
+        bucket = s3.Bucket(name=UNPROCESSED_BUCKET)
+        with open(realname) as f:
+            body = f.read()
+            bucket.put_object(
+                Key=key,
+                Body=body
+            )
+
+
+@pytest.fixture(scope='function')
+def unprocessed_bucket_events():
+    with open(TEST_PUT_EVENT_TEMPLATE_FILE) as f:
+        template = string.Template(f.read())
+    s3 = boto3.resource('s3', **S3_CONNECTION_DATA)
+    bucket = s3.Bucket(name=UNPROCESSED_BUCKET)
+    put = dict()
+    for summary in bucket.objects.all():
+        text = template.substitute(
+            size=summary.size,
+            etag=summary.e_tag.replace('"', ''),  # etag for some reason contains ""
+            bucket=UNPROCESSED_BUCKET,
+            key=summary.key
+        )
+        put[summary.key] = json.loads(text)
+    return dict(
+        put=put
+    )
 
 
 def pytest_sessionstart():

@@ -42,5 +42,8 @@ class QueuePollingWorker:
         return True
 
     def start(self):
-        for result in self:
+        try:
+            for result in self:
+                pass
+        except KeyboardInterrupt:
             pass
