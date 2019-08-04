@@ -50,7 +50,7 @@ def test_shutdown():
     counter = 0
     messages = 5
     for i in range(messages):
-        queue_dao.post(body=str(i), delay=i)
+        queue_dao.post(body=str(i), delay=i+1)
     for result in worker:
         counter += 1 if result else 0
     assert counter == messages

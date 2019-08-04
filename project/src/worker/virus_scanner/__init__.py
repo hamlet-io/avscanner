@@ -8,6 +8,10 @@ from dao import queue, filestore
 logger = loggers.logging.getLogger('VIRUS_SCANNER_WORKER')
 
 
+class VirusDetected(Exception):
+    pass
+
+
 class VirusScannerWorker(QueuePollingWorker):
 
     MESSAGE_WAIT_TIME = 10
@@ -22,7 +26,10 @@ class VirusScannerWorker(QueuePollingWorker):
         quarantine_filestore_dao=None,
         unprocessed_filestore_dao=None
     ):
-        super().__init__(virus_scanning_queue_dao)
+        super().__init__(
+            queue_dao=validation_queue_dao,
+            logger=logger
+        )
         self.virus_scanning_queue_dao = virus_scanning_queue_dao
         self.validation_queue_dao = validation_queue_dao
         self.quarantine_filestore_dao = quarantine_filestore_dao
@@ -33,7 +40,15 @@ class VirusScannerWorker(QueuePollingWorker):
             event = common.event.loads_s3_object_created_event(message.body)
         except common.event.InvalidEventError as e:
             logger.exception(e)
+        self.download_file(event)
+        self.scan_file()
         return event is not None
+
+    def scan_file(self):
+        pass
+
+    def check_file_size(self, event):
+        pass
 
 
 if __name__ == '__main__':

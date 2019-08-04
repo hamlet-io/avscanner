@@ -1,6 +1,17 @@
 import os
 import boto3
 from botocore.exceptions import ClientError
+# from common import loggers
+from . import utils
+
+
+class FileChangedError(Exception):
+    pass
+
+
+def is_precondition_failed_error(e):
+    code = e.response['Error']['Code']
+    return code in ['PreconditionFailed', '412']
 
 
 class FileStore:
@@ -18,18 +29,17 @@ class FileStore:
         object = self.bucket.Object(
             key=key
         )
-        get_params = dict()
-        if etag:
-            get_params['IfMatch'] = etag
+        get_params = utils.to_aws_params(
+            IfMatch=etag
+        )
         try:
             return object.get(**get_params)
         except self.exceptions.NoSuchKey:
             return None
         except ClientError as e:
-            code = e.response['Error']['Code']
-            if code == 'PreconditionFailed':
+            if is_precondition_failed_error(e):
                 return None
-            raise
+            raise  # pragma: no cover
 
     def post(self, key=None, body=None):
         object = self.bucket.Object(key=key)
@@ -42,7 +52,8 @@ class FileStore:
         self,
         path=None,
         key=None,
-        recursive=False
+        recursive=False,
+        etag=None
     ):
         if recursive:
             if not os.path.isdir(path):
@@ -62,36 +73,74 @@ class FileStore:
                     Filename=filename
                 )
         else:
-            object = self.bucket.Object(key)
-            object.download_file(
-                Filename=path
+            response = self.get(
+                key=key,
+                etag=etag
             )
+            if response is None:
+                raise FileChangedError()
+            with open(path, 'wb') as f:
+                f.write(response['Body'].read())
 
     def copy(
         self,
         key=None,
+        etag=None,
         target_bucket=None,
-        target_key=None
+        target_key=None,
     ):
-        copy_source = dict(
-            Key=key,
-            Bucket=self.bucket.name
+        params = dict(
+            CopySource=dict(
+                Key=key,
+                Bucket=self.bucket.name
+            ),
+            ExtraArgs=utils.to_aws_params(
+                CopySourceIfMatch=etag
+            )
         )
-        if target_bucket:
-            target_bucket = self.s3.Bucket(target_bucket)
-            target_bucket.Object(key=target_key).copy(copy_source)
-        else:
-            self.bucket.Object(key=target_key).copy(copy_source)
+        try:
+            if target_bucket:
+                target_bucket = self.s3.Bucket(target_bucket)
+                target_bucket.Object(key=target_key).copy(**params)
+            else:
+                self.bucket.Object(key=target_key).copy(**params)
+        except ClientError as e:
+            if is_precondition_failed_error(e):
+                raise FileChangedError() from e
+            raise  # pragma: no cover
 
     def move(
         self,
         key=None,
+        etag=None,
         target_bucket=None,
         target_key=None
     ):
         self.copy(
             key=key,
+            etag=etag,
             target_key=target_key,
             target_bucket=target_bucket
         )
         self.bucket.Object(key=key).delete()
+
+    def delete(
+        self,
+        key=None,
+        etag=None,
+        recursive=False
+    ):
+        if recursive:
+            objects = self.bucket.objects.filter(
+                Prefix=key
+            )
+            deleted = 0
+            for summary in objects:
+                summary.Object().delete()
+                deleted += 1
+            return deleted
+        object = self.bucket.Object(key=key)
+        if etag is not None and object.etag != etag:
+            raise FileChangedError()
+        object.delete()
+        return 1

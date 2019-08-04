@@ -1,4 +1,5 @@
 import boto3
+from . import utils
 
 
 class Message:
@@ -23,19 +24,12 @@ class Queue:
             QueueName=queue
         )
 
-    def __to_aws_params(self, **raw_params):
-        params = dict()
-        for name, value in raw_params.items():
-            if value is not None:
-                params[name] = value
-        return params
-
     def get(
         self,
         visibility_timeout=None,
         wait_time=None
     ):
-        params = self.__to_aws_params(
+        params = utils.to_aws_params(
             VisibilityTimeout=visibility_timeout,
             WaitTimeSeconds=wait_time
         )
@@ -55,7 +49,7 @@ class Queue:
         deduplication_id=None,
         group_id=None
     ):
-        params = self.__to_aws_params(
+        params = utils.to_aws_params(
             MessageBody=body,
             DelaySeconds=delay,
             MessageAttributes=attributes,
