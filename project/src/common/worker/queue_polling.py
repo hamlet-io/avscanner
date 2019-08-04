@@ -26,9 +26,8 @@ class QueuePollingWorker:
 
         if message is not None:
             self.__shutdown_check_messages_received += 1
-
-        if self.process_message(message):
-            self.__queue.delete(message=message)
+            if self.process_message(message):
+                self.__queue.delete(message=message)
 
         self.__shutdown_check_time += time.time() - started_time
         if self.__shutdown_check_time >= self.SHUTDOWN_CHECK_TIME_INTERVAL:
@@ -36,12 +35,12 @@ class QueuePollingWorker:
                 raise StopIteration()
             else:
                 self.__shutdown_check_messages_received = 0
+        return message is not None
+
+    def process_message(self, message):  # pragma: no cover
         return True
 
-    def process_message(self, message):
-        return True
-
-    def start(self):
+    def start(self):  # pragma: no cover
         try:
             for result in self:
                 pass
