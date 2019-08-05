@@ -1,10 +1,13 @@
 import os
+import io
 import string
 import json
 import posixpath
 import boto3
 import pytest
 
+
+TEMP_DIR = '/tmp'
 TEST_FILES_DIR = 'tests/data/file'
 TEST_PUT_EVENT_TEMPLATE_FILE = 'tests/data/event/put/template.json'
 
@@ -95,11 +98,11 @@ def fill_unprocessed_bucket():
         realname = os.path.join(TEST_FILES_DIR, filename)
         key = posixpath.join(*filename.split('-'))
         bucket = s3.Bucket(name=UNPROCESSED_BUCKET)
-        with open(realname) as f:
+        with open(realname, 'rb') as f:
             body = f.read()
             bucket.put_object(
                 Key=key,
-                Body=body
+                Body=io.BytesIO(body)
             )
 
 
@@ -121,6 +124,14 @@ def unprocessed_bucket_events():
     return dict(
         put=put
     )
+
+
+@pytest.fixture(scope='function')
+def clear_tmp():
+    filenames = os.listdir(TEMP_DIR)
+    for filename in filenames:
+        filename = os.path.join(TEMP_DIR, filename)
+        os.remove(filename)
 
 
 def pytest_sessionstart():

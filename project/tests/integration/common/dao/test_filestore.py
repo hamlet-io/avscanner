@@ -21,7 +21,8 @@ RECURSIVE_DOWNLOAD_PATH = '/tmp'
 
 
 @pytest.mark.usefixtures(
-    'clear_buckets'
+    'clear_buckets',
+    'clear_tmp'
 )
 def test():
     filestore = FileStore(
