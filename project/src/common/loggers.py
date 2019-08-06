@@ -2,16 +2,21 @@ import os
 import logging
 from logging.config import dictConfig
 import sentry_sdk
-from sentry_sdk.integrations.aws_lambda import AwsLambdaIntegration
+from sentry_sdk.integrations.logging import LoggingIntegration
 
 
 SENTRY_DSN = os.environ.get('SENTRY_DSN', default=None)
 
 
 if SENTRY_DSN:  # pragma: no cover
+    sentry_logging = LoggingIntegration(
+        level=logging.INFO,        # Capture info and above as breadcrumbs
+        event_level=logging.ERROR  # Send errors as events
+    )
+
     sentry_sdk.init(
         dsn=SENTRY_DSN,
-        integrations=[AwsLambdaIntegration()]
+        integrations=[sentry_logging]
     )
 
 
