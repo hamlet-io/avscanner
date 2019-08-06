@@ -12,7 +12,7 @@ from dao.conf import (
 from dao import queue, filestore
 
 MAX_FILE_SIZE = 1024 * 1024 * 100  # 100 MB
-FILE_SCAN_DOWNLOAD_PATH = '/tmp/scan'
+FILE_SCAN_DOWNLOAD_PATH = os.environ['DOWNLOAD_PATH_VIRUS_SCAN_FILE']
 VIRUS_SCAN_COMMAND = [
     'clamdscan',
     FILE_SCAN_DOWNLOAD_PATH,
