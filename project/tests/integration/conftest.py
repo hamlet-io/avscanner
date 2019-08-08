@@ -129,8 +129,11 @@ def unprocessed_bucket_events():
 
 @pytest.fixture(scope='function')
 def clear_tmp():
-    shutil.rmtree(os.path.join(TEMP_DIR))
-    os.mkdir(TEMP_DIR)
+    stat = os.stat(TEMP_DIR)
+    shutil.rmtree(TEMP_DIR)
+    os.makedirs(TEMP_DIR, exist_ok=True)
+    os.chmod(TEMP_DIR, stat.st_mode)
+    os.chown(TEMP_DIR, stat.st_uid, stat.st_gid)
 
 
 def pytest_sessionstart():

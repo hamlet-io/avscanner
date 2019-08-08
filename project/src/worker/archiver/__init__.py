@@ -40,6 +40,9 @@ class ArchiverWorker:
         size = int(result.stdout.split('\t')[0])
         return size / 1024
 
+    def remove(self, target):
+        shutil.rmtree(target, ignore_errors=True)
+
     # for easy mocking
     def get_current_date(self):
         return datetime.datetime.utcnow().date()
@@ -56,7 +59,7 @@ class ArchiverWorker:
         return self.get_archive_date().strftime('%Y/%-m/')
 
     def clear_download_dir(self):
-        shutil.rmtree(ARCHIVE_DOWNLOAD_DIR, ignore_errors=True)
+        self.remove(ARCHIVE_DOWNLOAD_DIR)
         self.logger.info('Deleted %s directory and content', ARCHIVE_DOWNLOAD_DIR)
         os.makedirs(ARCHIVE_DOWNLOAD_DIR, exist_ok=True)
         self.logger.info('Created empty %s directory', ARCHIVE_DOWNLOAD_DIR)
@@ -89,7 +92,7 @@ class ArchiverWorker:
             compressed_size,
             compressed_size/uncompressed_size
         )
-        shutil.rmtree(ARCHIVE_DOWNLOAD_DIR)
+        self.remove(ARCHIVE_DOWNLOAD_DIR)
         self.logger.info('Local uncompressed archive copy deleted')
 
     def send_zip_to_archive_compressed_dir(self, prefix):
@@ -132,7 +135,7 @@ class ArchiverWorker:
         except NoFilesToArchive:
             self.logger.info('There are no files to archive in %s', prefix)
             self.logger.info('Cleaning up')
-            shutil.rmtree(ARCHIVE_DOWNLOAD_DIR)
+            self.remove(ARCHIVE_DOWNLOAD_DIR)
         except Exception as e:
             self.logger.exception(e)
 

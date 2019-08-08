@@ -9,6 +9,7 @@ from src.worker.virus_scanner import VirusScannerWorker
 
 
 @pytest.mark.usefixtures(
+    'clear_tmp',
     'clear_buckets',
     'clear_queues',
     'fill_unprocessed_bucket'
