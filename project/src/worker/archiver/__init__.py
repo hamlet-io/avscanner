@@ -36,11 +36,20 @@ class ArchiverWorker:
         size = int(result.stdout.split('\t')[0])
         return size / 1024
 
+    # for easy mocking
     def get_current_date(self):
         return datetime.datetime.utcnow().date()
 
+    # this will return last day of previous month
+    # meaning that created archive will contain files upload last month
+    def get_archive_date(self):
+        date = self.get_current_date()
+        date.replace(day=1)
+        date -= datetime.timedelta(days=1)
+        return date
+
     def get_download_files_prefix(self):
-        return self.get_current_date().strftime('%Y/%-m/')
+        return self.get_archive_date().strftime('%Y/%-m/')
 
     def clear_download_dir(self):
         shutil.rmtree(ARCHIVE_DOWNLOAD_DIR, ignore_errors=True)

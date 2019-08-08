@@ -19,7 +19,7 @@ from src.worker.archiver import (
 
 NOW = datetime.datetime(
     year=2019,
-    month=1,
+    month=2,
     day=1
 ).date()
 
