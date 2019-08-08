@@ -1,5 +1,6 @@
 import os
 import io
+import shutil
 import string
 import json
 import posixpath
@@ -128,10 +129,8 @@ def unprocessed_bucket_events():
 
 @pytest.fixture(scope='function')
 def clear_tmp():
-    filenames = os.listdir(TEMP_DIR)
-    for filename in filenames:
-        filename = os.path.join(TEMP_DIR, filename)
-        os.remove(filename)
+    shutil.rmtree(os.path.join(TEMP_DIR))
+    os.mkdir(TEMP_DIR)
 
 
 def pytest_sessionstart():

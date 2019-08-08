@@ -3,17 +3,17 @@ import pytest
 from common.dao.filestore import FileStore, FileChangedError
 from tests.integration.conftest import (
     ARCHIVE_BUCKET,
-    QUARANTINE_BUCKET,
+    UNPROCESSED_BUCKET,
     S3_CONNECTION_DATA
 )
 
 
-BUCKET = ARCHIVE_BUCKET
-COPY_TARGET_BUCKET = QUARANTINE_BUCKET
+BUCKET = UNPROCESSED_BUCKET
+COPY_TARGET_BUCKET = ARCHIVE_BUCKET
 FILES = {
-    'valid/one.txt': 'one content'.encode(),
-    'valid/two.txt': 'two content'.encode(),
-    'valid/three.txt': 'three content'.encode()
+    'valid/1/one.txt': 'one content'.encode(),
+    'valid/2/two.txt': 'two content'.encode(),
+    'valid/3/three.txt': 'three content'.encode()
 }
 
 DOWNLOAD_PATH = '/tmp/test'
@@ -89,12 +89,15 @@ def test():
         recursive=True
     )
 
-    files = os.listdir(RECURSIVE_DOWNLOAD_PATH)
+    files = []
+    for dirpath, dirnames, filenames in os.walk(RECURSIVE_DOWNLOAD_PATH):
+        for filename in filenames:
+            files.append(os.path.join(dirpath, filename))
     assert len(files) == len(FILES)
-    for file in files:
-        filename = os.path.join(RECURSIVE_DOWNLOAD_PATH, file)
+    for filename in files:
         with open(filename, 'rb') as f:
-            assert f.read() == filestore.get(key=f'valid/{file}')['Body'].read()
+            key = f'valid/{os.path.relpath(filename, RECURSIVE_DOWNLOAD_PATH)}'
+            assert f.read() == filestore.get(key=key)['Body'].read()
         os.remove(filename)
 
     copy_key, move_key, *rest = FILES.keys()

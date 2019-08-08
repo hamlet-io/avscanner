@@ -1,4 +1,5 @@
 import os
+import posixpath
 import boto3
 from botocore.exceptions import ClientError
 # from common import loggers
@@ -63,15 +64,19 @@ class FileStore:
             objects = self.bucket.objects.filter(
                 Prefix=key
             )
+            downloaded = 0
             for summary in objects:
                 object = summary.Object()
                 filename = os.path.join(
                     path,
-                    object.key[len(key):]
+                    posixpath.relpath(summary.key, key)
                 )
+                os.makedirs(os.path.dirname(filename), exist_ok=True)
                 object.download_file(
                     Filename=filename
                 )
+                downloaded += 1
+            return downloaded
         else:
             response = self.get(
                 key=key,
@@ -81,6 +86,7 @@ class FileStore:
                 raise FileChangedError()
             with open(path, 'wb') as f:
                 f.write(response['Body'].read())
+            return 1
 
     def copy(
         self,
