@@ -17,6 +17,10 @@ COMPRESSED_ARCHIVE_FILE_PATH = os.environ['COMPRESSED_ARCHIVE_FILE_PATH']
 ARCHIVE_FILENAME = 'archive.zip'
 
 
+class NoFilesToArchive(Exception):
+    pass
+
+
 class ArchiverWorker:
 
     def __init__(
@@ -64,6 +68,8 @@ class ArchiverWorker:
             key=prefix,
             path=ARCHIVE_DOWNLOAD_DIR
         )
+        if number_of_files == 0:
+            raise NoFilesToArchive()
         size = self.get_size(ARCHIVE_DOWNLOAD_DIR)
         self.logger.info('Downloaded %i files from %s. Size %f MB', number_of_files, prefix, size)
 
@@ -113,15 +119,22 @@ class ArchiverWorker:
         self.logger.info('Deleted %i files in %f seconds', number_of_files, time.time() - start_time)
 
     def start(self):
-        start_time = time.time()
-        prefix = self.get_download_files_prefix()
-        self.logger.info('Started archiving directory %s', prefix)
-        self.clear_download_dir()
-        self.download_files(prefix)
-        self.zip_files(prefix)
-        self.send_zip_to_archive_compressed_dir(prefix)
-        self.delete_unzipped_files_from_archive_valid_dir(prefix)
-        self.logger.info('Completed archivation in %f seconds', time.time() - start_time)
+        try:
+            start_time = time.time()
+            prefix = self.get_download_files_prefix()
+            self.logger.info('Started archiving directory %s', prefix)
+            self.clear_download_dir()
+            self.download_files(prefix)
+            self.zip_files(prefix)
+            self.send_zip_to_archive_compressed_dir(prefix)
+            self.delete_unzipped_files_from_archive_valid_dir(prefix)
+            self.logger.info('Completed archivation in %f seconds', time.time() - start_time)
+        except NoFilesToArchive:
+            self.logger.info('There are no files to archive in %s', prefix)
+            self.logger.info('Cleaning up')
+            shutil.rmtree(ARCHIVE_DOWNLOAD_DIR)
+        except Exception as e:
+            self.logger.exception(e)
 
 
 if __name__ == '__main__':
