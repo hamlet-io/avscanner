@@ -23,44 +23,62 @@ NOW = datetime.datetime(
     day=1
 ).date()
 
+PREFIX = '2019/1/'
+
+
+def unzip_archive(dirname, archive_file):
+    os.makedirs(dirname, exist_ok=True)
+    subprocess.run(
+        ['unzip', archive_file],
+        cwd=dirname,
+        stdout=subprocess.DEVNULL
+    )
+
+
+def create_files(prefix):
+    files = dict()
+    index = 0
+    for user in ['a', 'b', 'c']:
+        for day in range(30):
+            index += 1
+            filename = f'file-{index}'
+            key = f'{prefix}{day}/{user}/{filename}'
+            files[key] = str(uuid.uuid4()).encode('utf8')
+    return files
+
+
+def validate_archive_files(unzipped_dir, files, prefix):
+    number_of_files = 0
+    for dirpath, dirnames, filenames in os.walk(ARCHIVE_DOWNLOAD_DIR):
+        for filename in filenames:
+            key = posixpath.join(
+                prefix,
+                posixpath.relpath(
+                    posixpath.join(dirpath, filename),
+                    ARCHIVE_DOWNLOAD_DIR
+                )
+            )
+            number_of_files += 1
+            with open(os.path.join(dirpath, filename), 'rb') as local_file:
+                assert local_file.read() == files[key]
+    assert len(files) == number_of_files
+
 
 @pytest.mark.usefixtures(
     'clear_buckets',
     'clear_tmp'
 )
-@mock.patch('src.worker.archiver.ArchiverWorker.get_current_date')
+@mock.patch('src.worker.archiver.ArchiverWorker.get_current_date', return_value=NOW)
 def test(get_current_date):
-    # setting fake current date
-    get_current_date.return_value = NOW
     archive_filestore_dao = filestore.Archive(
         conf.get_s3_env_conf()
     )
     worker = ArchiverWorker(
         archive_filestore_dao=archive_filestore_dao
     )
-    prefix = '2019/1/'
-    assert worker.get_download_files_prefix() == prefix
+    assert worker.get_download_files_prefix() == PREFIX
 
-    def create_files(prefix):
-        files = dict()
-        index = 0
-        for user in ['a', 'b', 'c']:
-            for day in range(30):
-                index += 1
-                filename = f'file-{index}'
-                key = f'{prefix}{day}/{user}/{filename}'
-                files[key] = str(uuid.uuid4()).encode('utf8')
-        return files
-
-    def unzip_archive(dirname, archive_file):
-        os.makedirs(dirname, exist_ok=True)
-        subprocess.run(
-            ['unzip', archive_file],
-            cwd=dirname,
-            stdout=subprocess.DEVNULL
-        )
-
-    archive_files = create_files(prefix)
+    archive_files = create_files(PREFIX)
     non_archive_files = create_files('2019/2/')
     files = {**archive_files, **non_archive_files}
 
@@ -83,28 +101,60 @@ def test(get_current_date):
 
     # check the composition of the archive
     assert archive_filestore_dao.download(
-        key=posixpath.join(
-            conf.ARCHIVE_BUCKET_COMPRESSED_DIR,
-            prefix,
-            ARCHIVE_FILENAME
-        ),
+        key=worker.get_archive_filestore_key(PREFIX),
         path=COMPRESSED_ARCHIVE_FILE_PATH
     )
     unzip_archive(
         ARCHIVE_DOWNLOAD_DIR,
         COMPRESSED_ARCHIVE_FILE_PATH
     )
-    number_of_files = 0
-    for dirpath, dirnames, filenames in os.walk(ARCHIVE_DOWNLOAD_DIR):
-        for filename in filenames:
-            key = posixpath.join(
-                prefix,
-                posixpath.relpath(
-                    posixpath.join(dirpath, filename),
-                    ARCHIVE_DOWNLOAD_DIR
-                )
+    validate_archive_files(ARCHIVE_DOWNLOAD_DIR, archive_files, PREFIX)
+
+
+@pytest.mark.usefixtures(
+    'clear_tmp',
+    'clear_buckets'
+)
+def test_no_files_to_archive():
+    archive_filestore_dao = filestore.Archive(
+        conf.get_s3_env_conf()
+    )
+    worker = ArchiverWorker(
+        archive_filestore_dao=archive_filestore_dao
+    )
+    worker.start()
+
+
+@pytest.mark.usefixtures(
+    'clear_tmp',
+    'clear_buckets'
+)
+@mock.patch('src.worker.archiver.ArchiverWorker.get_current_date', return_value=NOW)
+def test_archive_exists(get_current_date):
+    archive_filestore_dao = filestore.Archive(
+        conf.get_s3_env_conf()
+    )
+    worker = ArchiverWorker(
+        archive_filestore_dao=archive_filestore_dao
+    )
+
+    def add_files_to_filestore():
+        files = create_files(PREFIX)
+        for key, body in files.items():
+            archive_filestore_dao.post(
+                key=key,
+                body=body
             )
-            number_of_files += 1
-            with open(os.path.join(dirpath, filename), 'rb') as local_file:
-                assert local_file.read() == archive_files[key]
-    assert len(archive_files) == number_of_files
+    add_files_to_filestore()
+    # creating archive
+    worker.start()
+    archive_fileobj_key = worker.get_archive_filestore_key(PREFIX)
+    archive_fileobj = archive_filestore_dao.get(key=archive_fileobj_key)
+    assert archive_fileobj
+    # created archive should not change
+    worker.start()
+    add_files_to_filestore()
+    assert archive_filestore_dao.get(
+        key=archive_fileobj_key,
+        etag=archive_fileobj['ETag']
+    )
