@@ -63,9 +63,9 @@ class VirusScannerWorker(QueuePollingWorker):
         except VirusDetected:
             self.move_to_qurantine(event)
             return True
-        except common.event.InvalidEventError as e:
-            self.logger.exception(e)
-            return False
+        except common.event.InvalidEventError:
+            self.logger.error(message.body, exc_info=True)
+            return True
         except FileChangedError:
             self.logger.warn(
                 'File %s changed during processing',

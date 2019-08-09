@@ -28,17 +28,17 @@ def test(unprocessed_bucket_events):
         validation_queue_dao=validation_queue_dao,
         unprocessed_filestore_dao=unprocessed_filestore_dao
     )
+    worker.MESSAGE_VISIBILITY_TIMEOUT = 0
+    worker.MESSAGE_WAIT_TIME = 0
 
     # bad event
     validation_queue_dao.post(
         body=json.dumps({'msg': 'Hello world'}),
         delay=0
     )
-    message = validation_queue_dao.get(visibility_timeout=0)
     assert next(worker)
-    # message must remain in the queue
-    assert validation_queue_dao.get(wait_time=1)
-    validation_queue_dao.delete(message)
+    # message must be removed
+    assert not validation_queue_dao.get(wait_time=1)
 
     put = unprocessed_bucket_events['put']
 

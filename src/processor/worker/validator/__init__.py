@@ -51,9 +51,9 @@ class ValidatorWorker(QueuePollingWorker):
             )
             self.move_file_to_valid_dir(event)
             return True
-        except common.event.InvalidEventError as e:
-            self.logger.exception(e)
-            return False
+        except common.event.InvalidEventError:
+            self.logger.error(message.body, exc_info=True)
+            return True
         except FileIsNotJSON:
             self.logger.info(
                 'File %s is not JSON',
