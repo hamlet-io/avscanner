@@ -11,9 +11,8 @@ from processor.dao import (
 )
 from processor.worker.archiver import (
     ArchiverWorker,
-    ARCHIVE_FILENAME,
     COMPRESSED_ARCHIVE_FILE_PATH,
-    ARCHIVE_DOWNLOAD_DIR
+    DOWNLOAD_PATH_ARCHIVED_FILES
 )
 
 
@@ -49,13 +48,13 @@ def create_files(prefix):
 
 def validate_archive_files(unzipped_dir, files, prefix):
     number_of_files = 0
-    for dirpath, dirnames, filenames in os.walk(ARCHIVE_DOWNLOAD_DIR):
+    for dirpath, dirnames, filenames in os.walk(DOWNLOAD_PATH_ARCHIVED_FILES):
         for filename in filenames:
             key = posixpath.join(
                 prefix,
                 posixpath.relpath(
                     posixpath.join(dirpath, filename),
-                    ARCHIVE_DOWNLOAD_DIR
+                    DOWNLOAD_PATH_ARCHIVED_FILES
                 )
             )
             number_of_files += 1
@@ -89,7 +88,7 @@ def test(get_current_date):
         )
     worker.start()
     # check that local files removed
-    assert not os.path.exists(ARCHIVE_DOWNLOAD_DIR)
+    assert not os.path.exists(DOWNLOAD_PATH_ARCHIVED_FILES)
     assert not os.path.exists(COMPRESSED_ARCHIVE_FILE_PATH)
     # check that archived files removed but non archive files remain unchanged
     for key in archive_files:
@@ -105,10 +104,10 @@ def test(get_current_date):
         path=COMPRESSED_ARCHIVE_FILE_PATH
     )
     unzip_archive(
-        ARCHIVE_DOWNLOAD_DIR,
+        DOWNLOAD_PATH_ARCHIVED_FILES,
         COMPRESSED_ARCHIVE_FILE_PATH
     )
-    validate_archive_files(ARCHIVE_DOWNLOAD_DIR, archive_files, PREFIX)
+    validate_archive_files(DOWNLOAD_PATH_ARCHIVED_FILES, archive_files, PREFIX)
 
 
 @pytest.mark.usefixtures(
