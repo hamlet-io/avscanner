@@ -1,5 +1,5 @@
-from src.dao import filestore
-from src.dao import conf
+from processor.dao import filestore
+from processor.dao import conf
 
 
 def test():

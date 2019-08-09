@@ -5,11 +5,11 @@ import posixpath
 import datetime
 from unittest import mock
 import pytest
-from src.dao import (
+from processor.dao import (
     filestore,
     conf
 )
-from src.worker.archiver import (
+from processor.worker.archiver import (
     ArchiverWorker,
     ARCHIVE_FILENAME,
     COMPRESSED_ARCHIVE_FILE_PATH,
@@ -68,7 +68,7 @@ def validate_archive_files(unzipped_dir, files, prefix):
     'clear_buckets',
     'clear_tmp'
 )
-@mock.patch('src.worker.archiver.ArchiverWorker.get_current_date', return_value=NOW)
+@mock.patch('processor.worker.archiver.ArchiverWorker.get_current_date', return_value=NOW)
 def test(get_current_date):
     archive_filestore_dao = filestore.Archive(
         conf.get_s3_env_conf()
@@ -129,7 +129,7 @@ def test_no_files_to_archive():
     'clear_tmp',
     'clear_buckets'
 )
-@mock.patch('src.worker.archiver.ArchiverWorker.get_current_date', return_value=NOW)
+@mock.patch('processor.worker.archiver.ArchiverWorker.get_current_date', return_value=NOW)
 def test_archive_exists(get_current_date):
     archive_filestore_dao = filestore.Archive(
         conf.get_s3_env_conf()

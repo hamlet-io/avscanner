@@ -1,5 +1,5 @@
-from src.dao import queue
-from src.dao import conf
+from processor.dao import queue
+from processor.dao import conf
 
 
 def test():

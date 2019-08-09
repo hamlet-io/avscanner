@@ -1,11 +1,11 @@
 import json
 import pytest
-from src.dao import (
+from processor.dao import (
     queue,
     filestore,
     conf
 )
-from src.worker.virus_scanner import VirusScannerWorker
+from processor.worker.virus_scanner import VirusScannerWorker
 
 
 @pytest.mark.usefixtures(

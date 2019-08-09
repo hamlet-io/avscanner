@@ -1,6 +1,6 @@
 import pytest
-from src.dao import queue, conf
-from src.common.worker.queue_polling import QueuePollingWorker
+from processor.dao import queue, conf
+from processor.common.worker.queue_polling import QueuePollingWorker
 
 
 @pytest.mark.usefixtures(

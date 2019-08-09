@@ -1,8 +1,8 @@
 FROM python:3.7-alpine
 
-WORKDIR /project
+WORKDIR /src
 
-ENV PYTHONPATH=/project/src
+ENV PYTHONPATH=/src/processor
 
 ENV PYTHONDONTWRITEBYTECODE=1
 
@@ -17,4 +17,6 @@ RUN sh docker/dev/install.sh
 
 COPY docker/dev/clamd.conf /etc/clamav/clamd.conf
 
-CMD sh docker/dev/cmd.sh
+ENTRYPOINT ["/src/docker/dev/cmd.sh"]
+
+CMD ["tail", "-f", "/dev/null"]

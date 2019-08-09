@@ -31,11 +31,11 @@ services:
       - internal
     restart: on-failure
 
-  project:
-      image: psd-project
-      container_name: psd-project
+  processor:
+      image: psd-processor
+      container_name: psd-processor
       build:
-        context: ./project
+        context: ./src
         dockerfile: ./docker/dev/Dockerfile
       depends_on:
         - minio
@@ -43,6 +43,6 @@ services:
       env_file:
         - .env
       volumes:
-        - './project:/project'
+        - './src:/src'
       networks:
         - internal

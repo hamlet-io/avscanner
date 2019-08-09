@@ -1,7 +1,7 @@
 .PHONY: run
 .ONESHELL:
 run:
-	@ python src
+	@ python processorc
 
 .PHONY: test-unit
 .ONESHELL:
@@ -20,3 +20,9 @@ coverage:
 		coverage run -m tests
 		coverage report -m
 		coverage html
+
+
+.PHONY: test-ci
+.ONESHELL:
+test-ci:
+	@ python -m pytest tests --junitxml=test-report.xml --cov --cov-report=html

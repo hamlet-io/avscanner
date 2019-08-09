@@ -1,0 +1,4 @@
+{
+    "Units" : ["processor-v1", "archiver-v1"],
+    "Formats" : ["docker"]
+}

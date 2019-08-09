@@ -1,12 +1,12 @@
 import json
 import posixpath
 import pytest
-from src.dao import (
+from processor.dao import (
     queue,
     filestore,
     conf
 )
-from src.worker.validator import ValidatorWorker
+from processor.worker.validator import ValidatorWorker
 
 
 @pytest.mark.usefixtures(

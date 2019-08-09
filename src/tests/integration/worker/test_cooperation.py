@@ -2,13 +2,13 @@ import logging
 import json
 import posixpath
 import pytest
-from src.dao import (
+from processor.dao import (
     queue,
     filestore,
     conf
 )
-from src.worker.validator import ValidatorWorker
-from src.worker.virus_scanner import VirusScannerWorker
+from processor.worker.validator import ValidatorWorker
+from processor.worker.virus_scanner import VirusScannerWorker
 
 
 logger = logging.getLogger('COOPERATION')
