@@ -71,18 +71,6 @@ def test(unprocessed_bucket_events):
     assert not validation_queue_dao.get(wait_time=1)
     assert not quarantine_filestore_dao.get(key=filename)
 
-    # invalid file, not a virus
-    filename = '2019/1/1/user/invalid.json'
-    virus_scanning_queue_dao.post(
-        body=json.dumps(put[filename]),
-        delay=0
-    )
-    assert next(worker)
-    message = validation_queue_dao.get(wait_time=1)
-    assert message
-    validation_queue_dao.delete(message)
-    assert not quarantine_filestore_dao.get(key=filename)
-
     # test virus
     filename = '2019/1/3/user/virus.json'
     virus_scanning_queue_dao.post(

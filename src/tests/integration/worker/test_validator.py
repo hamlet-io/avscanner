@@ -96,17 +96,3 @@ def test(unprocessed_bucket_events):
             filename
         )
     )
-
-    filename = '2019/1/4/user/invalid.schema.json'
-    validation_queue_dao.post(
-        body=json.dumps(put[filename]),
-        delay=0
-    )
-    assert next(worker)
-    assert not validation_queue_dao.get()
-    assert archive_filestore_dao.get(
-        key=posixpath.join(
-            conf.ARCHIVE_BUCKET_INVALID_DIR,
-            filename
-        )
-    )

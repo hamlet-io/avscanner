@@ -97,18 +97,3 @@ def test(unprocessed_bucket_events):
     assert not unprocessed_filestore_dao.get(
         key=filename
     )
-
-    logger.info('Testing JSON file with invalid schema put into unprocessed bucket')
-    filename = '2019/1/4/user/invalid.schema.json'
-    post_event_to_virus_scanning_queue('put', filename)
-    assert next(virus_scanner_worker)
-    assert next(validator_worker)
-    assert archive_filestore_dao.get(
-        key=posixpath.join(
-            conf.ARCHIVE_BUCKET_INVALID_DIR,
-            filename
-        )
-    )
-    assert not unprocessed_filestore_dao.get(
-        key=filename
-    )

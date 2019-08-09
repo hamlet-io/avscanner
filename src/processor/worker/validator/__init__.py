@@ -19,10 +19,6 @@ class FileIsNotJSON(InvalidFileError):
     pass
 
 
-class InvalidJSONFileSchema(InvalidFileError):
-    pass
-
-
 logger = loggers.logging.getLogger('VALIDATOR_WORKER')
 
 
@@ -43,8 +39,8 @@ class ValidatorWorker(QueuePollingWorker):
     def process_message(self, message):
         try:
             event = common.event.loads_s3_unprocessed_bucket_object_created_event(message.body)
-            data = self.download_json_file(event)
-            self.validate_json_file_schema(data)
+            # download file to verify that it's a valid JSON
+            self.download_json_file(event)
             self.logger.info(
                 'File %s passed validation',
                 event['s3']['object']['key']
@@ -57,13 +53,6 @@ class ValidatorWorker(QueuePollingWorker):
         except FileIsNotJSON:
             self.logger.info(
                 'File %s is not JSON',
-                event['s3']['object']['key']
-            )
-            self.move_file_to_invalid_dir(event)
-            return True
-        except InvalidJSONFileSchema:
-            self.logger.info(
-                'File %s has invalid schema',
                 event['s3']['object']['key']
             )
             self.move_file_to_invalid_dir(event)
@@ -90,16 +79,6 @@ class ValidatorWorker(QueuePollingWorker):
             return json.loads(fileobj['Body'].read())
         except ValueError as e:
             raise FileIsNotJSON() from e
-
-    def validate_json_file_schema(self, data):
-        # TODO: create proper schema validation.
-        # Maybe we should use marshmallow for verbose
-        # schema validation
-        try:
-            data['name']['first']
-            data['name']['last']
-        except KeyError as e:
-            raise InvalidJSONFileSchema() from e
 
     def move_file_to_archive(self, event, prefix):
         obj = event['s3']['object']
