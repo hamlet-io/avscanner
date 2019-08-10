@@ -16,7 +16,6 @@ FILE_SCAN_DOWNLOAD_PATH = os.environ['DOWNLOAD_PATH_VIRUS_SCAN_FILE']
 VIRUS_SCAN_COMMAND = [
     'clamdscan',
     FILE_SCAN_DOWNLOAD_PATH,
-    '--stdout',
     '--no-summary'
 ]
 
@@ -28,12 +27,14 @@ class VirusDetected(Exception):
     pass
 
 
+class ScannerError(Exception):
+    pass
+
+
 class VirusScannerWorker(QueuePollingWorker):
 
     MESSAGE_WAIT_TIME = 10
     MESSAGE_VISIBILITY_TIMEOUT = 10
-    SHUTDOWN_CHECK_TIME_INTERVAL = 10
-    SHUTDOWN_CHECK_MIN_MESSAGES = 1
 
     def __init__(
         self,
@@ -72,14 +73,20 @@ class VirusScannerWorker(QueuePollingWorker):
                 event['s3']['object']['key']
             )
             return True
-        except Exception as e:
-            logger.error('Unexpected error occured', e)
+        except Exception:
+            logger.error('Unexpected error occured', exc_info=True)
             return False
 
     def scan_file(self):
         self.logger.info('Scanning downloaded file')
-        result = subprocess.run(VIRUS_SCAN_COMMAND)
-        if result.returncode != 0:
+        result = subprocess.run(
+            VIRUS_SCAN_COMMAND,
+            capture_output=True,
+            encoding='utf8'
+        )
+        if result.stderr:
+            raise ScannerError(result.stderr)
+        if result.returncode == 1:
             raise VirusDetected()
         os.remove(FILE_SCAN_DOWNLOAD_PATH)
         self.logger.info('Removed scanned file')
