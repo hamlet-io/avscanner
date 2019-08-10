@@ -1,5 +1,6 @@
 import os
 import io
+import subprocess
 import shutil
 import string
 import json
@@ -136,5 +137,19 @@ def clear_tmp():
     os.chown(TEMP_DIR, stat.st_uid, stat.st_gid)
 
 
+def check_clamdscan():
+    result = subprocess.run(
+        [
+            'clamdscan',
+            os.path.abspath(__file__)
+        ],
+        capture_output=True,
+        encoding='utf8'
+    )
+    if result.stderr:
+        raise RuntimeError(f'Clamd not initialized:\n{result.stderr}')
+
+
 def pytest_sessionstart():
+    check_clamdscan()
     create_buckets()
