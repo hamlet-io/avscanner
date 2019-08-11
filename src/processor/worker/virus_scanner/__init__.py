@@ -92,11 +92,6 @@ class VirusScannerWorker(QueuePollingWorker):
         self.logger.info('Removed scanned file')
 
     def download_file(self, event):
-        try:
-            os.remove(FILE_SCAN_DOWNLOAD_PATH)
-            self.logger.info('Deleted previous scan file before downloading.')
-        except FileNotFoundError:
-            pass
         obj = event['s3']['object']
         self.logger.info('Downloading file %s', obj['key'])
         if obj['size'] > MAX_FILE_SIZE:
