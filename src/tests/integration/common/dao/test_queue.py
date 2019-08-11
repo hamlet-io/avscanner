@@ -26,7 +26,7 @@ def test(clear_queues):
     body = 'Hello'
     queue.post(body, delay=1)
     assert not queue.get()
-    message = queue.get(wait_time=1)
+    message = queue.get(wait_time=2)
     assert message
     assert message.body == body
     assert queue.delete(message=message)

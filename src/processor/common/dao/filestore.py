@@ -146,7 +146,7 @@ class FileStore:
                 deleted += 1
             return deleted
         object = self.bucket.Object(key=key)
-        if etag is not None and object.etag != etag:
+        if etag is not None and object.e_tag != etag:
             raise FileChangedError()
         object.delete()
         return 1

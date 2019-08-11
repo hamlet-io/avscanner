@@ -38,6 +38,8 @@ def test(clear_tmp, clear_buckets):
 
         etag = fileobj['ETag']
         assert filestore.get(key=key, etag='Invalid etag') is None
+        with pytest.raises(FileChangedError):
+            assert filestore.delete(key=key, etag='Invalid etag')
         etag_fileobj = filestore.get(key=key, etag=etag)
         assert etag_fileobj is not None
         assert etag_fileobj['Body'].read() == content

@@ -75,6 +75,5 @@ class Queue:
                 )
             ]
         )
-        if len(response['Successful']) == 0:
-            return False
-        return True
+        # always true for some reason, maybe elasticmq issue
+        return len(response['Successful']) != 0
