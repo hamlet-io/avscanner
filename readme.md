@@ -8,6 +8,10 @@ Validate and archive files put into passport scanner data s3 bucket.
 
 Project consists of 3 workers and 2 queues, 3 buckets. Both queues used to pass s3 object created event to workers.
 
+##### Note:
+Buckets and queues names provided in default `.env` file located at the project root directory.
+Also `.env` file contains connection parameters for both sqs and s3 as well as file prefixes/directories. 
+
 #### Workers:
 1. Archiver - archives valid data files on a monthly basis.
 1. Validator - validates data files format.
