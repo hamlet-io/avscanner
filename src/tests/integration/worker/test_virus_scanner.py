@@ -1,4 +1,5 @@
 import json
+from unittest import mock
 from processor.dao import (
     queue,
     filestore,
@@ -77,3 +78,39 @@ def test(fill_unprocessed_bucket, clear_queues, clear_buckets, clear_tmp):
     assert next(worker)
     assert not validation_queue_dao.get(wait_time=1)
     assert quarantine_filestore_dao.get(key=filename)
+
+    # valid file, not a virus, size too large
+    clear_tmp()
+    clear_buckets()
+    clear_queues()
+    unprocessed_bucket_events = fill_unprocessed_bucket()
+    put = unprocessed_bucket_events['put']
+
+    WORKER_MAX_FILE_SIZE = worker.MAX_FILE_SIZE
+
+    worker.MAX_FILE_SIZE = -1
+
+    filename = '2019/1/2/user/valid.json'
+    virus_scanning_queue_dao.post(
+        body=json.dumps(put[filename]),
+        delay=0
+    )
+    assert next(worker)
+    assert not validation_queue_dao.get(wait_time=1)
+    assert quarantine_filestore_dao.get(key=filename)
+
+    # unexpected error test
+    worker.MAX_FILE_SIZE = WORKER_MAX_FILE_SIZE
+    exception = Exception('Test')
+    worker.scan_file = mock.Mock()
+    worker.scan_file.side_effect = exception
+
+    filename = '2019/1/3/user/virus.json'
+    virus_scanning_queue_dao.post(
+        body=json.dumps(put[filename]),
+        delay=0
+    )
+    assert next(worker)
+    assert not validation_queue_dao.get(wait_time=1)
+    assert unprocessed_filestore_dao.get(key=filename)
+    assert virus_scanning_queue_dao.get(wait_time=1)

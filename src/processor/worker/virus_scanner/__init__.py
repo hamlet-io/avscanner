@@ -11,14 +11,6 @@ from dao.conf import (
 )
 from dao import queue, filestore
 
-MAX_FILE_SIZE = 1024 * 1024 * 100  # 100 MB
-FILE_SCAN_DOWNLOAD_PATH = os.environ['DOWNLOAD_PATH_VIRUS_SCAN_FILE']
-VIRUS_SCAN_COMMAND = [
-    'clamdscan',
-    FILE_SCAN_DOWNLOAD_PATH,
-    '--no-summary'
-]
-
 
 logger = loggers.logging.getLogger('VIRUS_SCANNER_WORKER')
 
@@ -27,14 +19,19 @@ class VirusDetected(Exception):
     pass
 
 
-class ScannerError(Exception):
-    pass
-
-
 class VirusScannerWorker(QueuePollingWorker):
 
     MESSAGE_WAIT_TIME = 10
     MESSAGE_VISIBILITY_TIMEOUT = 10
+
+    MAX_FILE_SIZE = 1024 * 1024 * int(os.environ['MAX_FILE_SIZE'])  # MB
+
+    FILE_SCAN_DOWNLOAD_PATH = os.environ['DOWNLOAD_PATH_VIRUS_SCAN_FILE']
+    VIRUS_SCAN_COMMAND = [
+        'clamdscan',
+        FILE_SCAN_DOWNLOAD_PATH,
+        '--no-summary'
+    ]
 
     def __init__(
         self,
@@ -80,25 +77,26 @@ class VirusScannerWorker(QueuePollingWorker):
     def scan_file(self):
         self.logger.info('Scanning downloaded file')
         result = subprocess.run(
-            VIRUS_SCAN_COMMAND,
+            self.VIRUS_SCAN_COMMAND,
             capture_output=True,
             encoding='utf8'
         )
         if result.stderr:
-            raise ScannerError(result.stderr)
+            raise Exception(result.stderr)
         if result.returncode == 1:
             raise VirusDetected()
-        os.remove(FILE_SCAN_DOWNLOAD_PATH)
+        os.remove(self.FILE_SCAN_DOWNLOAD_PATH)
         self.logger.info('Removed scanned file')
 
     def download_file(self, event):
         obj = event['s3']['object']
         self.logger.info('Downloading file %s', obj['key'])
-        if obj['size'] > MAX_FILE_SIZE:
-            raise VirusDetected('File is too large')
+        if obj['size'] > self.MAX_FILE_SIZE:
+            self.logger.warn('File %s is too large, %i bytes', obj['key'], obj['size'])
+            raise VirusDetected()
         self.unprocessed_filestore_dao.download(
             key=obj['key'],
-            path=FILE_SCAN_DOWNLOAD_PATH,
+            path=self.FILE_SCAN_DOWNLOAD_PATH,
             etag=obj['eTag']
         )
         self.logger.info('Downloaded file %s', obj['key'])
