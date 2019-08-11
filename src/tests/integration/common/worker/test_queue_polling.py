@@ -1,12 +1,9 @@
-import pytest
 from processor.dao import queue, conf
 from processor.common.worker.queue_polling import QueuePollingWorker
 
 
-@pytest.mark.usefixtures(
-    'clear_queues'
-)
-def test():
+def test(clear_queues):
+    clear_queues()
 
     def successful_processing(message):
         return True

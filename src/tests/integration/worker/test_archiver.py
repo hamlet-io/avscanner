@@ -63,12 +63,10 @@ def validate_archive_files(unzipped_dir, files, prefix):
     assert len(files) == number_of_files
 
 
-@pytest.mark.usefixtures(
-    'clear_buckets',
-    'clear_tmp'
-)
 @mock.patch('processor.worker.archiver.ArchiverWorker.get_current_date', return_value=NOW)
-def test(get_current_date):
+def test(get_current_date, clear_tmp, clear_buckets):
+    clear_tmp()
+    clear_buckets()
     archive_filestore_dao = filestore.Archive(
         conf.get_s3_env_conf()
     )
@@ -87,9 +85,6 @@ def test(get_current_date):
             body=body
         )
     worker.start()
-    # check that local files removed
-    assert not os.path.exists(DOWNLOAD_PATH_ARCHIVED_FILES)
-    assert not os.path.exists(COMPRESSED_ARCHIVE_FILE_PATH)
     # check that archived files removed but non archive files remain unchanged
     for key in archive_files:
         assert not archive_filestore_dao.get(key=key)
@@ -110,11 +105,9 @@ def test(get_current_date):
     validate_archive_files(DOWNLOAD_PATH_ARCHIVED_FILES, archive_files, PREFIX)
 
 
-@pytest.mark.usefixtures(
-    'clear_tmp',
-    'clear_buckets'
-)
-def test_no_files_to_archive():
+def test_no_files_to_archive(clear_tmp, clear_buckets):
+    clear_tmp()
+    clear_buckets()
     archive_filestore_dao = filestore.Archive(
         conf.get_s3_env_conf()
     )
@@ -124,12 +117,10 @@ def test_no_files_to_archive():
     worker.start()
 
 
-@pytest.mark.usefixtures(
-    'clear_tmp',
-    'clear_buckets'
-)
 @mock.patch('processor.worker.archiver.ArchiverWorker.get_current_date', return_value=NOW)
-def test_archive_exists(get_current_date):
+def test_archive_exists(get_current_date, clear_tmp, clear_buckets):
+    clear_tmp()
+    clear_buckets()
     archive_filestore_dao = filestore.Archive(
         conf.get_s3_env_conf()
     )
@@ -151,6 +142,7 @@ def test_archive_exists(get_current_date):
     archive_fileobj = archive_filestore_dao.get(key=archive_fileobj_key)
     assert archive_fileobj
     # created archive should not change
+    clear_tmp()
     worker.start()
     add_files_to_filestore()
     assert archive_filestore_dao.get(

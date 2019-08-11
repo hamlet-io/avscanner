@@ -1,6 +1,5 @@
 import json
 import posixpath
-import pytest
 from processor.dao import (
     queue,
     filestore,
@@ -9,12 +8,11 @@ from processor.dao import (
 from processor.worker.validator import ValidatorWorker
 
 
-@pytest.mark.usefixtures(
-    'clear_buckets',
-    'clear_queues',
-    'fill_unprocessed_bucket'
-)
-def test(unprocessed_bucket_events):
+def test(fill_unprocessed_bucket, clear_queues, clear_buckets, clear_tmp):
+    clear_tmp()
+    clear_queues()
+    clear_buckets()
+    unprocessed_bucket_events = fill_unprocessed_bucket()
     validation_queue_dao = queue.Validation(
         conf.get_sqs_env_conf()
     )

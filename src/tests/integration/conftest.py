@@ -67,74 +67,77 @@ def create_buckets():
         create(name)
 
 
-@pytest.fixture(scope='function')
+@pytest.fixture(scope='session')
 def clear_queues():
-    sqs = boto3.resource('sqs', **SQS_CONNECTION_DATA)
+    def fixture():
+        sqs = boto3.resource('sqs', **SQS_CONNECTION_DATA)
 
-    def clear(name):
-        queue = sqs.get_queue_by_name(
-            QueueName=name
-        )
-        queue.purge()
-
-    for queue in VALID_QUEUES:
-        clear(queue)
-
-
-@pytest.fixture(scope='function')
-def clear_buckets():
-    s3 = boto3.resource('s3', **S3_CONNECTION_DATA)
-
-    def clear(name):
-        s3.Bucket(name).objects.all().delete()
-
-    for name in VALID_BUCKETS:
-        clear(name)
-
-
-@pytest.fixture(scope='function')
-def fill_unprocessed_bucket():
-    s3 = boto3.resource('s3', **S3_CONNECTION_DATA)
-    files = os.listdir(TEST_FILES_DIR)
-    for filename in files:
-        realname = os.path.join(TEST_FILES_DIR, filename)
-        key = posixpath.join(*filename.split('-'))
-        bucket = s3.Bucket(name=UNPROCESSED_BUCKET)
-        with open(realname, 'rb') as f:
-            body = f.read()
-            bucket.put_object(
-                Key=key,
-                Body=io.BytesIO(body)
+        def clear(name):
+            queue = sqs.get_queue_by_name(
+                QueueName=name
             )
+            queue.purge()
+
+        for queue in VALID_QUEUES:
+            clear(queue)
+    return fixture
 
 
-@pytest.fixture(scope='function')
-def unprocessed_bucket_events():
+@pytest.fixture(scope='session')
+def clear_buckets():
+    def fixture():
+        s3 = boto3.resource('s3', **S3_CONNECTION_DATA)
+
+        def clear(name):
+            s3.Bucket(name).objects.all().delete()
+
+        for name in VALID_BUCKETS:
+            clear(name)
+    return fixture
+
+
+@pytest.fixture(scope='session')
+def fill_unprocessed_bucket():
     with open(TEST_PUT_EVENT_TEMPLATE_FILE) as f:
         template = string.Template(f.read())
-    s3 = boto3.resource('s3', **S3_CONNECTION_DATA)
-    bucket = s3.Bucket(name=UNPROCESSED_BUCKET)
-    put = dict()
-    for summary in bucket.objects.all():
-        text = template.substitute(
-            size=summary.size,
-            etag=summary.e_tag.replace('"', ''),  # etag for some reason contains ""
-            bucket=UNPROCESSED_BUCKET,
-            key=summary.key
-        )
-        put[summary.key] = json.loads(text)
-    return dict(
-        put=put
-    )
+
+    def fixture():
+        put = dict()
+        s3 = boto3.resource('s3', **S3_CONNECTION_DATA)
+        files = os.listdir(TEST_FILES_DIR)
+        for filename in files:
+            # writing file to bucket
+            realname = os.path.join(TEST_FILES_DIR, filename)
+            key = posixpath.join(*filename.split('-'))
+            bucket = s3.Bucket(name=UNPROCESSED_BUCKET)
+            with open(realname, 'rb') as f:
+                body = f.read()
+                bucket.put_object(
+                    Key=key,
+                    Body=io.BytesIO(body)
+                )
+            # creating event
+            obj = bucket.Object(key=key)
+            event_text = template.substitute(
+                size=obj.content_length,
+                etag=obj.e_tag.replace('"', ''),  # etag for some reason contains ""
+                bucket=UNPROCESSED_BUCKET,
+                key=obj.key
+            )
+            put[obj.key] = json.loads(event_text)
+        return dict(put=put)
+    return fixture
 
 
-@pytest.fixture(scope='function')
+@pytest.fixture(scope='session')
 def clear_tmp():
-    stat = os.stat(TEMP_DIR)
-    shutil.rmtree(TEMP_DIR)
-    os.makedirs(TEMP_DIR, exist_ok=True)
-    os.chmod(TEMP_DIR, stat.st_mode)
-    os.chown(TEMP_DIR, stat.st_uid, stat.st_gid)
+    def fixture():
+        stat = os.stat(TEMP_DIR)
+        shutil.rmtree(TEMP_DIR)
+        os.makedirs(TEMP_DIR, exist_ok=True)
+        os.chmod(TEMP_DIR, stat.st_mode)
+        os.chown(TEMP_DIR, stat.st_uid, stat.st_gid)
+    return fixture
 
 
 def check_clamdscan():

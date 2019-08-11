@@ -20,11 +20,9 @@ DOWNLOAD_PATH = '/tmp/test'
 RECURSIVE_DOWNLOAD_PATH = '/tmp'
 
 
-@pytest.mark.usefixtures(
-    'clear_buckets',
-    'clear_tmp'
-)
-def test():
+def test(clear_tmp, clear_buckets):
+    clear_tmp()
+    clear_buckets()
     filestore = FileStore(
         bucket=BUCKET,
         connection_conf=S3_CONNECTION_DATA
@@ -166,10 +164,8 @@ def test():
     assert filestore.get(key=target_copy_key) is None
 
 
-@pytest.mark.usefixtures(
-    'clear_buckets'
-)
-def test_bulk_delete():
+def test_bulk_delete(clear_buckets):
+    clear_buckets()
     filestore = FileStore(
         bucket=BUCKET,
         connection_conf=S3_CONNECTION_DATA

@@ -1,5 +1,4 @@
 import time
-import pytest
 from common.dao.queue import Queue
 from tests.integration.conftest import (
     SQS_CONNECTION_DATA,
@@ -7,10 +6,8 @@ from tests.integration.conftest import (
 )
 
 
-@pytest.mark.usefixtures(
-    'clear_queues'
-)
-def test():
+def test(clear_queues):
+    clear_queues()
     queue = Queue(
         queue=VALIDATION_QUEUE,
         connection_conf=SQS_CONNECTION_DATA

@@ -2,7 +2,6 @@ import os
 import time
 import posixpath
 import subprocess
-import shutil
 import datetime
 from common import loggers
 from dao import (
@@ -44,8 +43,15 @@ class ArchiverWorker:
         size = int(result.stdout.split('\t')[0])
         return size / 1024
 
-    def remove(self, target):
-        shutil.rmtree(target, ignore_errors=True)
+    def create_dir(self, path):
+        self.logger.info('Creating directory %s if not exists', path)
+        os.makedirs(path, exist_ok=True)
+
+    def create_archive_files_download_dir(self):
+        self.create_dir(DOWNLOAD_PATH_ARCHIVED_FILES)
+
+    def create_compressed_archive_dir(self):
+        self.create_dir(os.path.dirname(COMPRESSED_ARCHIVE_FILE_PATH))
 
     # for easy mocking
     def get_current_date(self):
@@ -61,18 +67,6 @@ class ArchiverWorker:
 
     def get_download_files_prefix(self):
         return self.get_archive_date().strftime('%Y/%-m/')
-
-    def clear_download_dir(self):
-        self.remove(DOWNLOAD_PATH_ARCHIVED_FILES)
-        self.logger.info('Deleted %s directory and content', DOWNLOAD_PATH_ARCHIVED_FILES)
-        os.makedirs(DOWNLOAD_PATH_ARCHIVED_FILES, exist_ok=True)
-        self.logger.info('Created empty %s directory', DOWNLOAD_PATH_ARCHIVED_FILES)
-
-    def cleanup(self):
-        self.logger.info('Cleaning up...')
-        self.remove(DOWNLOAD_PATH_ARCHIVED_FILES)
-        self.remove(COMPRESSED_ARCHIVE_FILE_PATH)
-        self.logger.info('Cleanup completed')
 
     def get_archive_filestore_key(self, prefix):
         return posixpath.join(
@@ -116,7 +110,6 @@ class ArchiverWorker:
             compressed_size,
             compressed_size/uncompressed_size
         )
-        self.remove(DOWNLOAD_PATH_ARCHIVED_FILES)
         self.logger.info('Local uncompressed archive copy deleted')
 
     def send_zip_to_archive_compressed_dir(self, prefix):
@@ -147,8 +140,9 @@ class ArchiverWorker:
             prefix = self.get_download_files_prefix()
             self.logger.info('Started archiving directory %s', prefix)
             self.check_archive_not_exists(prefix)
-            self.clear_download_dir()
+            self.create_archive_files_download_dir()
             self.download_files(prefix)
+            self.create_compressed_archive_dir()
             self.zip_files(prefix)
             self.send_zip_to_archive_compressed_dir(prefix)
             self.delete_unzipped_files_from_archive_valid_dir(prefix)
@@ -159,8 +153,6 @@ class ArchiverWorker:
             self.logger.warn('There are no files to archive in %s. Archivation stopped', prefix)
         except Exception as e:
             self.logger.exception(e)
-        finally:
-            self.cleanup()
 
 
 if __name__ == '__main__':
