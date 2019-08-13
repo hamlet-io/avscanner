@@ -2,4 +2,8 @@ version: '3.5'
 
 services:
   processor:
-      command: make test-ci
+    volumes:
+      - '/var/run/docker.sock:/var/run/docker.sock'
+    command: make test-ci
+    build:
+      target: build

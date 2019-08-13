@@ -11,13 +11,13 @@ services:
     build:
       context: ./minio
       dockerfile: ./Dockerfile
-    volumes:
-      - ./minio/data:/minio-data
     ports:
       - '9000:9000'
+    restart: on-failure
+    volumes:
+      - '${dockerstagedir:-.}/minio/data:/minio-data'
     networks:
       - internal
-    restart: on-failure
 
   elasticmq:
     image: psd-elasticmq
@@ -27,22 +27,23 @@ services:
       dockerfile: ./Dockerfile
     ports:
       - '9324:9324'
+    restart: on-failure
     networks:
       - internal
-    restart: on-failure
 
   processor:
-      image: psd-processor
-      container_name: psd-processor
-      build:
-        context: ./src
-        dockerfile: ./docker/dev/Dockerfile
-      depends_on:
-        - minio
-        - elasticmq
-      env_file:
-        - .env
-      volumes:
-        - './src:/src'
-      networks:
-        - internal
+    image: psd-processor
+    container_name: psd-processor
+    build:
+      context: .
+      target: base_dev
+      dockerfile: ./devops/docker/Dockerfile
+    depends_on:
+      - minio
+      - elasticmq
+    env_file:
+      - .env
+    volumes:
+      - '${dockerstagedir:-.}/src:/src'
+    networks:
+      - internal
