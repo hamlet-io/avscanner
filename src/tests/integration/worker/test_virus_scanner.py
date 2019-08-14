@@ -1,5 +1,4 @@
 import json
-from unittest import mock
 from processor.dao import (
     queue,
     filestore,
@@ -41,9 +40,26 @@ def test(fill_unprocessed_bucket, clear_queues, clear_buckets, clear_tmp):
     # message must be removed
     assert not validation_queue_dao.get(wait_time=1)
 
-    # valid file, not a virus
     put = unprocessed_bucket_events['put']
+    # unexpected error / scanner error, message must remain
+    worker.VIRUS_SCAN_COMMAND = [
+        'clamdscan',
+        'badfilenameshouldnotexist',
+        '--no-summary'
+    ]
+    filename = '2019/1/2/user/valid.json'
+    virus_scanning_queue_dao.post(
+        body=json.dumps(put[filename]),
+        delay=0
+    )
+    assert next(worker)
+    assert not validation_queue_dao.get(wait_time=1)
+    message = virus_scanning_queue_dao.get(wait_time=1)
+    assert message
+    virus_scanning_queue_dao.delete(message=message)
+    worker.VIRUS_SCAN_COMMAND = VirusScannerWorker.VIRUS_SCAN_COMMAND
 
+    # valid file, not a virus
     filename = '2019/1/2/user/valid.json'
     virus_scanning_queue_dao.post(
         body=json.dumps(put[filename]),
@@ -86,8 +102,6 @@ def test(fill_unprocessed_bucket, clear_queues, clear_buckets, clear_tmp):
     unprocessed_bucket_events = fill_unprocessed_bucket()
     put = unprocessed_bucket_events['put']
 
-    WORKER_MAX_FILE_SIZE = worker.MAX_FILE_SIZE
-
     worker.MAX_FILE_SIZE = -1
 
     filename = '2019/1/2/user/valid.json'
@@ -98,19 +112,3 @@ def test(fill_unprocessed_bucket, clear_queues, clear_buckets, clear_tmp):
     assert next(worker)
     assert not validation_queue_dao.get(wait_time=1)
     assert quarantine_filestore_dao.get(key=filename)
-
-    # unexpected error test
-    worker.MAX_FILE_SIZE = WORKER_MAX_FILE_SIZE
-    exception = Exception('Test')
-    worker.scan_file = mock.Mock()
-    worker.scan_file.side_effect = exception
-
-    filename = '2019/1/3/user/virus.json'
-    virus_scanning_queue_dao.post(
-        body=json.dumps(put[filename]),
-        delay=0
-    )
-    assert next(worker)
-    assert not validation_queue_dao.get(wait_time=1)
-    assert unprocessed_filestore_dao.get(key=filename)
-    assert virus_scanning_queue_dao.get(wait_time=1)

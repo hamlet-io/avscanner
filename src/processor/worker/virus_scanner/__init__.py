@@ -74,13 +74,16 @@ class VirusScannerWorker(QueuePollingWorker):
             logger.error('Unexpected error occured', exc_info=True)
             return False
 
-    def scan_file(self):
-        self.logger.info('Scanning downloaded file')
-        result = subprocess.run(
+    def run_scan_command(self):
+        return subprocess.run(
             self.VIRUS_SCAN_COMMAND,
             capture_output=True,
             encoding='utf8'
         )
+
+    def scan_file(self):
+        self.logger.info('Scanning downloaded file')
+        result = self.run_scan_command()
         if result.stderr:
             raise Exception(result.stderr)
         if result.returncode == 1:

@@ -80,7 +80,7 @@ class ArchiverWorker:
         self.logger.info('Checking that archive file %s does not exist...', key)
         if self.archive_filestore_dao.get(key=key) is not None:
             raise ArchiveExists()
-        self.logger.info('Archive file %s not found. Continuing...')
+        self.logger.info('Archive file %s not found. Continuing...', key)
 
     def download_files(self, prefix):
         self.logger.info('Downloading valid files from %s to %s', prefix, DOWNLOAD_PATH_ARCHIVED_FILES)

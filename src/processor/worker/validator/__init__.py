@@ -63,8 +63,8 @@ class ValidatorWorker(QueuePollingWorker):
                 event['s3']['object']['key']
             )
             return True
-        except Exception as e:
-            logger.error('Unexpected error occured', e)
+        except Exception:
+            logger.error('Unexpected error occured', exc_info=True)
             return False
 
     def download_json_file(self, event):

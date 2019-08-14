@@ -1,5 +1,6 @@
 import json
 import posixpath
+from unittest import mock
 from processor.dao import (
     queue,
     filestore,
@@ -94,3 +95,13 @@ def test(fill_unprocessed_bucket, clear_queues, clear_buckets, clear_tmp):
             filename
         )
     )
+
+    # test unexpected error, message must remain in the queue
+    worker.download_json_file = mock.MagicMock()
+    worker.download_json_file.side_effect = Exception()
+    validation_queue_dao.post(
+        body=json.dumps(put[filename]),
+        delay=0
+    )
+    assert next(worker)
+    assert validation_queue_dao.get(wait_time=1)

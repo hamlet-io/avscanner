@@ -4,7 +4,6 @@ import subprocess
 import posixpath
 import datetime
 from unittest import mock
-import pytest
 from processor.dao import (
     filestore,
     conf
@@ -64,7 +63,7 @@ def validate_archive_files(unzipped_dir, files, prefix):
 
 
 @mock.patch('processor.worker.archiver.ArchiverWorker.get_current_date', return_value=NOW)
-def test(get_current_date, clear_tmp, clear_buckets):
+def test_archivation(get_current_date, clear_tmp, clear_buckets):
     clear_tmp()
     clear_buckets()
     archive_filestore_dao = filestore.Archive(
@@ -103,6 +102,42 @@ def test(get_current_date, clear_tmp, clear_buckets):
         COMPRESSED_ARCHIVE_FILE_PATH
     )
     validate_archive_files(DOWNLOAD_PATH_ARCHIVED_FILES, archive_files, PREFIX)
+
+
+@mock.patch('processor.worker.archiver.ArchiverWorker.get_current_date', return_value=NOW)
+def test_unexpected_error(get_current_date, clear_tmp, clear_buckets):
+    clear_tmp()
+    clear_buckets()
+    archive_filestore_dao = filestore.Archive(
+        conf.get_s3_env_conf()
+    )
+    worker = ArchiverWorker(
+        archive_filestore_dao=archive_filestore_dao
+    )
+    assert worker.get_download_files_prefix() == PREFIX
+
+    archive_files = create_files(PREFIX)
+    non_archive_files = create_files('2019/2/')
+    files = {**archive_files, **non_archive_files}
+
+    for key, body in files.items():
+        archive_filestore_dao.post(
+            key=key,
+            body=body
+        )
+    # creating unexpected error
+    worker.download_files = mock.MagicMock()
+    worker.download_files.side_effect = Exception()
+    worker.start()
+    # archive not created
+    worker.download_files.assert_called()
+    assert not archive_filestore_dao.get(
+        key=worker.get_archive_filestore_key(PREFIX)
+    )
+    # original files not deleted
+    for key, body in files.items():
+        fileobj = archive_filestore_dao.get(key=key)
+        assert fileobj['Body'].read() == body
 
 
 def test_no_files_to_archive(clear_tmp, clear_buckets):
