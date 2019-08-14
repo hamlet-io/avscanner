@@ -21,7 +21,7 @@ NOW = datetime.datetime(
     day=1
 ).date()
 
-PREFIX = '2019/1/'
+PREFIX = 'valid/2019/1/'
 
 
 def unzip_archive(dirname, archive_file):
@@ -72,10 +72,9 @@ def test_archivation(get_current_date, clear_tmp, clear_buckets):
     worker = ArchiverWorker(
         archive_filestore_dao=archive_filestore_dao
     )
-    assert worker.get_download_files_prefix() == PREFIX
 
     archive_files = create_files(PREFIX)
-    non_archive_files = create_files('2019/2/')
+    non_archive_files = create_files('valid/2019/2/')
     files = {**archive_files, **non_archive_files}
 
     for key, body in files.items():
@@ -84,6 +83,8 @@ def test_archivation(get_current_date, clear_tmp, clear_buckets):
             body=body
         )
     worker.start()
+    assert worker.download_files_key_prefix == 'valid/2019/1/'
+    assert worker.archive_filestore_key == 'compressed/2019/1/archive.zip'
     # check that archived files removed but non archive files remain unchanged
     for key in archive_files:
         assert not archive_filestore_dao.get(key=key)
@@ -94,7 +95,7 @@ def test_archivation(get_current_date, clear_tmp, clear_buckets):
 
     # check the composition of the archive
     assert archive_filestore_dao.download(
-        key=worker.get_archive_filestore_key(PREFIX),
+        key=worker.archive_filestore_key,
         path=COMPRESSED_ARCHIVE_FILE_PATH
     )
     unzip_archive(
@@ -114,7 +115,6 @@ def test_unexpected_error(get_current_date, clear_tmp, clear_buckets):
     worker = ArchiverWorker(
         archive_filestore_dao=archive_filestore_dao
     )
-    assert worker.get_download_files_prefix() == PREFIX
 
     archive_files = create_files(PREFIX)
     non_archive_files = create_files('2019/2/')
@@ -132,7 +132,7 @@ def test_unexpected_error(get_current_date, clear_tmp, clear_buckets):
     # archive not created
     worker.download_files.assert_called()
     assert not archive_filestore_dao.get(
-        key=worker.get_archive_filestore_key(PREFIX)
+        key=worker.archive_filestore_key
     )
     # original files not deleted
     for key, body in files.items():
@@ -173,14 +173,13 @@ def test_archive_exists(get_current_date, clear_tmp, clear_buckets):
     add_files_to_filestore()
     # creating archive
     worker.start()
-    archive_fileobj_key = worker.get_archive_filestore_key(PREFIX)
-    archive_fileobj = archive_filestore_dao.get(key=archive_fileobj_key)
+    archive_fileobj = archive_filestore_dao.get(key=worker.archive_filestore_key)
     assert archive_fileobj
     # created archive should not change
     clear_tmp()
     worker.start()
     add_files_to_filestore()
     assert archive_filestore_dao.get(
-        key=archive_fileobj_key,
+        key=worker.archive_filestore_key,
         etag=archive_fileobj['ETag']
     )
