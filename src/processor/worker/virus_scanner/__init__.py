@@ -1,4 +1,5 @@
 import os
+import tempfile
 import subprocess
 import common.event
 from common import loggers
@@ -26,7 +27,8 @@ class VirusScannerWorker(QueuePollingWorker):
 
     MAX_FILE_SIZE = 1024 * 1024 * int(os.environ['MAX_FILE_SIZE'])  # MB
 
-    FILE_SCAN_DOWNLOAD_PATH = os.environ['DOWNLOAD_PATH_VIRUS_SCAN_FILE']
+    FILE_SCAN_DOWNLOAD_PATH = os.path.join(tempfile.gettempdir(), 'scan')
+
     VIRUS_SCAN_COMMAND = [
         'clamdscan',
         FILE_SCAN_DOWNLOAD_PATH,
