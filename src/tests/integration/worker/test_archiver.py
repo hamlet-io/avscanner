@@ -8,12 +8,10 @@ from processor.dao import (
     filestore,
     conf
 )
-from processor.worker.archiver import (
-    ArchiverWorker,
-    COMPRESSED_ARCHIVE_FILE_PATH,
-    DOWNLOAD_PATH_ARCHIVED_FILES
-)
+from processor.worker.archiver import ArchiverWorker
 
+COMPRESSED_ARCHIVE_FILE_PATH = '/tmp/compressed'
+DOWNLOAD_PATH_ARCHIVED_FILES = '/tmp/archive'
 
 NOW = datetime.datetime(
     year=2019,

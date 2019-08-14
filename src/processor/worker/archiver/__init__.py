@@ -1,6 +1,6 @@
 import os
 import time
-import posixpath
+import tempfile
 import subprocess
 import datetime
 from common import loggers
@@ -11,8 +11,9 @@ from dao import (
 
 default_logger = loggers.logging.getLogger('ARCHIVER_WORKER')
 
-DOWNLOAD_PATH_ARCHIVED_FILES = os.environ['DOWNLOAD_PATH_ARCHIVED_FILES']
-COMPRESSED_ARCHIVE_FILE_PATH = os.environ['COMPRESSED_ARCHIVE_FILE_PATH']
+DOWNLOAD_PATH_ARCHIVED_FILES = 'archive'
+# must have zip extension, otherwise zip will add extension to filename and code will fail
+COMPRESSED_ARCHIVE_FILE_PATH = 'compressed.zip'
 ARCHIVE_FILENAME = 'archive.zip'
 
 
@@ -43,15 +44,13 @@ class ArchiverWorker:
         size = int(result.stdout.split('\t')[0])
         return size / 1024
 
-    def create_dir(self, path):
-        self.logger.info('Creating directory %s if not exists', path)
-        os.makedirs(path, exist_ok=True)
-
-    def create_archive_files_download_dir(self):
-        self.create_dir(DOWNLOAD_PATH_ARCHIVED_FILES)
-
-    def create_compressed_archive_dir(self):
-        self.create_dir(os.path.dirname(COMPRESSED_ARCHIVE_FILE_PATH))
+    def create_dirs(self, tmpdir):
+        self.compressed_archive_file_path = os.path.join(tmpdir, COMPRESSED_ARCHIVE_FILE_PATH)
+        self.archive_files_download_dir = os.path.join(tmpdir, DOWNLOAD_PATH_ARCHIVED_FILES)
+        os.makedirs(os.path.dirname(self.compressed_archive_file_path), exist_ok=True)
+        os.makedirs(self.archive_files_download_dir, exist_ok=True)
+        self.logger.info('Archive files download dir %s', self.archive_files_download_dir)
+        self.logger.info('Compressed archive path %s', self.compressed_archive_file_path)
 
     # for easy mocking
     def get_current_date(self):
@@ -87,16 +86,16 @@ class ArchiverWorker:
         self.logger.info(
             'Downloading valid files from %s to %s',
             self.download_files_key_prefix,
-            DOWNLOAD_PATH_ARCHIVED_FILES
+            self.archive_files_download_dir
         )
         number_of_files = self.archive_filestore_dao.download(
             recursive=True,
             key=self.download_files_key_prefix,
-            path=DOWNLOAD_PATH_ARCHIVED_FILES
+            path=self.archive_files_download_dir
         )
         if number_of_files == 0:
             raise NoFilesToArchive()
-        size = self.get_size(DOWNLOAD_PATH_ARCHIVED_FILES)
+        size = self.get_size(self.archive_files_download_dir)
         self.logger.info(
             'Downloaded %i files from %s. Size %f MB',
             number_of_files,
@@ -106,14 +105,15 @@ class ArchiverWorker:
 
     def zip_files(self):
         self.logger.info('Starting compression...')
-        uncompressed_size = self.get_size(DOWNLOAD_PATH_ARCHIVED_FILES)
+        uncompressed_size = self.get_size(self.archive_files_download_dir)
         start_time = time.time()
         subprocess.run(
-            ['zip', '-r', '-9', COMPRESSED_ARCHIVE_FILE_PATH, '.'],
-            cwd=DOWNLOAD_PATH_ARCHIVED_FILES,
-            stdout=subprocess.DEVNULL
+            ['zip', '-r', '-9', self.compressed_archive_file_path, '.'],
+            cwd=self.archive_files_download_dir,
+            capture_output=True,
+            # stdout=subprocess.DEVNULL
         )
-        compressed_size = self.get_size(COMPRESSED_ARCHIVE_FILE_PATH)
+        compressed_size = self.get_size(self.compressed_archive_file_path)
         self.logger.info(
             'Files compressed in %f seconds. Size %f MB. Compression %f',
             time.time()-start_time,
@@ -123,7 +123,7 @@ class ArchiverWorker:
         self.logger.info('Local uncompressed archive copy deleted')
 
     def send_zip_to_archive_compressed_dir(self):
-        with open(COMPRESSED_ARCHIVE_FILE_PATH, 'rb') as f:
+        with open(self.compressed_archive_file_path, 'rb') as f:
             self.logger.info(
                 'Uploading compressed archive as %s',
                 self.archive_filestore_key
@@ -134,8 +134,6 @@ class ArchiverWorker:
                 key=self.archive_filestore_key
             )
             self.logger.info('Uploading completed in %f seconds', time.time() - start_time)
-        os.remove(COMPRESSED_ARCHIVE_FILE_PATH)
-        self.logger.info('Local compressed archive copy deleted')
 
     def delete_unzipped_files_from_archive_valid_dir(self):
         self.logger.info('Deleting uncompressed directory %s from archive', self.download_files_key_prefix)
@@ -147,24 +145,37 @@ class ArchiverWorker:
         self.logger.info('Deleted %i files in %f seconds', number_of_files, time.time() - start_time)
 
     def start(self):
-        try:
-            start_time = time.time()
-            self.create_keys()
-            self.logger.info('Started archiving directory %s', self.download_files_key_prefix)
-            self.check_archive_not_exists()
-            self.create_archive_files_download_dir()
-            self.download_files()
-            self.create_compressed_archive_dir()
-            self.zip_files()
-            self.send_zip_to_archive_compressed_dir()
-            self.delete_unzipped_files_from_archive_valid_dir()
-            self.logger.info('Completed archivation in %f seconds', time.time() - start_time)
-        except ArchiveExists:
-            self.logger.error('Archive file %s exists. Archivation stopped', self.archive_filestore_key)
-        except NoFilesToArchive:
-            self.logger.warn('There are no files to archive in %s. Archivation stopped', self.download_files_key_prefix)
-        except Exception as e:
-            self.logger.exception(e)
+        with tempfile.TemporaryDirectory() as tmpdir:
+            try:
+                self.logger.info('Created tmp dir %s', tmpdir)
+                start_time = time.time()
+                self.create_keys()
+                self.create_dirs(tmpdir)
+                self.logger.info(
+                    'Started archiving directory %s',
+                    self.download_files_key_prefix
+                )
+                self.check_archive_not_exists()
+                self.download_files()
+                self.zip_files()
+                self.send_zip_to_archive_compressed_dir()
+                self.delete_unzipped_files_from_archive_valid_dir()
+                self.logger.info(
+                    'Completed archivation in %f seconds',
+                    time.time() - start_time
+                )
+            except ArchiveExists:
+                self.logger.error(
+                    'Archive file %s exists. Archivation stopped',
+                    self.archive_filestore_key
+                )
+            except NoFilesToArchive:
+                self.logger.warn(
+                    'There are no files to archive in %s. Archivation stopped',
+                    self.download_files_key_prefix
+                )
+            except Exception as e:
+                self.logger.exception(e)
 
 
 if __name__ == '__main__':
