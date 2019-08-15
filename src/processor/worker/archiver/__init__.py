@@ -11,6 +11,7 @@ from dao import (
 
 default_logger = loggers.logging.getLogger('ARCHIVER_WORKER')
 
+# paths relative to tmp dir generated on start
 DOWNLOAD_PATH_ARCHIVED_FILES = 'archive'
 # must have zip extension, otherwise zip will add extension to filename and code will fail
 COMPRESSED_ARCHIVE_FILE_PATH = 'compressed.zip'
@@ -120,7 +121,6 @@ class ArchiverWorker:
             compressed_size,
             compressed_size/uncompressed_size
         )
-        self.logger.info('Local uncompressed archive copy deleted')
 
     def send_zip_to_archive_compressed_dir(self):
         with open(self.compressed_archive_file_path, 'rb') as f:

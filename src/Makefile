@@ -1,7 +1,7 @@
-.PHONY: run
+.PHONY: demo
 .ONESHELL:
-run:
-	@ python processorc
+demo:
+	@ pytest tests/integration/worker/test_cooperation.py -x -vv
 
 .PHONY: test-unit
 .ONESHELL:
