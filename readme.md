@@ -10,7 +10,7 @@ Project consists of 3 workers and 2 queues, 3 buckets. Both queues used to pass 
 
 ##### Note:
 Buckets and queues names provided in default `.env` file located at the project root directory.
-Also `.env` file contains connection parameters for both sqs and s3 as well as file prefixes/directories. 
+Also `.env` file contains connection parameters for both sqs and s3 as well as file prefixes/directories.
 
 #### Workers:
 1. Archiver - archives valid data files on a monthly basis.
@@ -48,10 +48,18 @@ Otherwise event will be considered invalid and removed from the queue and file w
 Successfully processed events always deleted from the workers queues. The only situation when file remains in the queue after a worker started processing is an unexpected error which may be caused by an auto-scaling group which may shut down the worker before it finished event processing.
 
 ## Test/Demo run:
+
+Make sure you have modern docker installation (if you get some weird errors about Dockefile syntax - upgrade it).
+Also, after you have run `make run` - ensure that local directories for buckets are created. To do it check the `.env` file, read values of next variables and create these directories in the `minio/data`:
+
+* ARCHIVE_BUCKET_NAME
+* QUARANTINE_BUCKET_NAME
+* UNPROCESSED_BUCKET_NAME
+
 1. Run `cd <project_root>`
 1. Run `make run`
 1. In new session `make ssh-project`
-1. In ssh session `make test-integration`. This will run the tests which mock workflow described above. You'll see verbose logs which are pretty self explanatory.
+2. Run `py.test` or `make test-integration` inside the container. This will run the tests which mock workflow described above. You'll see verbose logs which are pretty self explanatory.
 
 
 ## Known issues:
