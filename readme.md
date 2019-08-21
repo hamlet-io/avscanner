@@ -58,7 +58,7 @@ Also, after you have run `make run` - ensure that local directories for buckets 
 
 1. Run `cd <project_root>`
 1. Run `make run`
-1. In new session `make ssh-project`
+1. In new session `make ssh-processor`
 2. Run `py.test` or `make test-integration` inside the container. This will run the tests which mock workflow described above. You'll see verbose logs which are pretty self explanatory.
 
 
