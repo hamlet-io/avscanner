@@ -4,6 +4,7 @@ services:
   processor:
     volumes:
       - '/var/run/docker.sock:/var/run/docker.sock'
-    command: make test-ci
     build:
       target: build
+    environment:
+      - APP_RUN_MODE=CI

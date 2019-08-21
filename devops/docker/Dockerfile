@@ -1,6 +1,7 @@
 FROM python:3.7-alpine AS base
 
 RUN apk update
+RUN apk add bash
 
 ENV PYTHONPATH=/src/processor
 
@@ -10,14 +11,11 @@ COPY devops/docker/install-clamav.sh install-clamav.sh
 RUN sh install-clamav.sh
 
 COPY devops/docker/install.sh install.sh
-COPY devops/docker/cmd.sh cmd.sh
 RUN sh install.sh
 
 COPY devops/docker/clamd.conf /etc/clamav/clamd.conf
 
-ENTRYPOINT ["/cmd.sh"]
-
-CMD ["tail", "-f", "/dev/null"]
+ENTRYPOINT ["/src/docker/scripts/entrypoint.sh"]
 
 FROM base AS base_dev
 # no need to copy src directory for dev mode as it is mounted as a volume
