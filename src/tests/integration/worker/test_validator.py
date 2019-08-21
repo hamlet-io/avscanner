@@ -7,6 +7,10 @@ from processor.dao import (
     conf
 )
 from processor.worker.validator import ValidatorWorker
+from tests.integration.conftest import (
+    event_filename_to_archive_key,
+    event_filename_to_unprocessed_key
+)
 
 
 def test(fill_unprocessed_bucket, clear_queues, clear_buckets, clear_tmp):
@@ -41,7 +45,7 @@ def test(fill_unprocessed_bucket, clear_queues, clear_buckets, clear_tmp):
 
     put = unprocessed_bucket_events['put']
 
-    filename = '2019/1/2/user/valid.json'
+    filename = '2019-1-2-0-user-valid.json'
     validation_queue_dao.post(
         body=json.dumps(put[filename]),
         delay=0
@@ -51,7 +55,7 @@ def test(fill_unprocessed_bucket, clear_queues, clear_buckets, clear_tmp):
     assert archive_filestore_dao.get(
         key=posixpath.join(
             conf.ARCHIVE_BUCKET_VALID_DIR,
-            filename
+            event_filename_to_archive_key(filename)
         )
     )
 
@@ -82,7 +86,7 @@ def test(fill_unprocessed_bucket, clear_queues, clear_buckets, clear_tmp):
         )
     )
 
-    filename = '2019/1/1/user/invalid.json'
+    filename = '2019-1-1-0-user-invalid.json'
     validation_queue_dao.post(
         body=json.dumps(put[filename]),
         delay=0
@@ -92,7 +96,7 @@ def test(fill_unprocessed_bucket, clear_queues, clear_buckets, clear_tmp):
     assert archive_filestore_dao.get(
         key=posixpath.join(
             conf.ARCHIVE_BUCKET_INVALID_DIR,
-            filename
+            event_filename_to_archive_key(filename)
         )
     )
 

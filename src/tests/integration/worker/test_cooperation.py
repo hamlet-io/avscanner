@@ -15,6 +15,10 @@ from tests.integration.worker.test_archiver import (
     unzip_archive,
     validate_archive_files
 )
+from tests.integration.conftest import (
+    event_filename_to_unprocessed_key,
+    event_filename_to_archive_key
+)
 
 logger = logging.getLogger('COOPERATION')
 
@@ -80,62 +84,65 @@ def test(
     def process_file(category, filename):
         assert next(virus_scanner_worker)
         if category == 'valid':
+            key = event_filename_to_archive_key(filename)
             assert next(validator_worker)
             assert archive_filestore_dao.get(
                 key=posixpath.join(
                     conf.ARCHIVE_BUCKET_VALID_DIR,
-                    filename
+                    key
                 )
             )
         elif category == 'invalid':
+            key = event_filename_to_archive_key(filename)
             assert next(validator_worker)
             assert archive_filestore_dao.get(
                 key=posixpath.join(
                     conf.ARCHIVE_BUCKET_INVALID_DIR,
-                    filename
+                    key
                 )
             )
         elif category == 'virus':
+            key = event_filename_to_unprocessed_key(filename)
             assert not next(validator_worker)
             assert quarantine_filestore_dao.get(
-                key=filename
+                key=key
             )
-        assert not unprocessed_filestore_dao.get(key=filename)
+        assert not unprocessed_filestore_dao.get(key=event_filename_to_unprocessed_key(filename))
 
     logger.info('Testing non JSON file put into unprocessed bucket')
-    filename = '2019/1/1/user/invalid.json'
+    filename = '2019-1-1-0-user-invalid.json'
     post_event_to_virus_scanning_queue('put', filename)
     process_file('invalid', filename)
 
     logger.info('Testing valid file put into unprocessed bucket')
-    filename = '2019/1/2/user/valid.json'
+    filename = '2019-1-2-0-user-valid.json'
     post_event_to_virus_scanning_queue('put', filename)
     process_file('valid', filename)
 
     logger.info('Testing virus file put into unprocessed bucket')
-    filename = '2019/1/3/user/virus.json'
+    filename = '2019-1-3-1-user-virus.json'
     post_event_to_virus_scanning_queue('put', filename)
     process_file('virus', filename)
 
     logger.info('Putting couple more valid files to test archiver')
 
-    filename = '2019/1/4/user/valid.json'
+    filename = '2019-1-4-0-user-valid.json'
     post_event_to_virus_scanning_queue('put', filename)
     process_file('valid', filename)
 
-    filename = '2019/1/3/user/valid.json'
+    filename = '2019-1-3-0-user-valid.json'
     post_event_to_virus_scanning_queue('put', filename)
     process_file('valid', filename)
 
     archive_files = {}
     for key in [
-        '2019/1/2/user/valid.json',
-        '2019/1/3/user/valid.json',
-        '2019/1/4/user/valid.json'
+        '2019-1-2-0-user-valid.json',
+        '2019-1-3-0-user-valid.json',
+        '2019-1-4-0-user-valid.json'
     ]:
         key = posixpath.join(
             conf.ARCHIVE_BUCKET_VALID_DIR,
-            key
+            event_filename_to_archive_key(key)
         )
         fileobj = archive_filestore_dao.get(key=key)
         assert fileobj

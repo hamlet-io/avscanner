@@ -1,5 +1,4 @@
 import json
-import datetime
 from dao.conf import UNPROCESSED_BUCKET
 
 
@@ -39,17 +38,9 @@ def loads_s3_object_created_event(text):
 
 def validate_unprocessed_file_key(key):
     try:
-        year, month, day, user, filename = (part for part in key.split('/') if part)
+        private, user, inbox, filename = (part for part in key.split('/') if part)
     except ValueError as e:
         raise InvalidEventError('Key does not match expected format') from e
-    try:
-        year, month, day = int(year), int(month), int(day)
-    except ValueError as e:
-        raise InvalidEventError('<year>/<month>/<day> must be integers') from e
-    try:
-        datetime.datetime(year=year, month=month, day=day)
-    except ValueError as e:
-        raise InvalidEventError('Given date is invalid') from e
 
 
 def loads_s3_unprocessed_bucket_object_created_event(text):

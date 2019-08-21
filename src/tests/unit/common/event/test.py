@@ -59,7 +59,7 @@ def test_loads_s3_unprocessed_bucket_object_created_event():
                 "name": UNPROCESSED_BUCKET_NAME
             },
             "object": {
-                "key": "2019/1/1/user/file.json"
+                "key": "private/user/submissionInbox/00001.json"
             }
         }
     }
@@ -97,7 +97,7 @@ def test_validate_unprocessed_file_key():
     with pytest.raises(event.InvalidEventError):
         event.validate_unprocessed_file_key('bad key')
     with pytest.raises(event.InvalidEventError):
-        event.validate_unprocessed_file_key('one/two/three/user/filename.json')
+        event.validate_unprocessed_file_key('/user/00012.json')
     with pytest.raises(event.InvalidEventError):
-        event.validate_unprocessed_file_key('1994/13/32/user/filename.json')
-    event.validate_unprocessed_file_key('1994/12/29/user/filename.json')
+        event.validate_unprocessed_file_key('/private/user/test/submissionInbox/00012.json')
+    event.validate_unprocessed_file_key('private/user/submissionInbox/00000.json')

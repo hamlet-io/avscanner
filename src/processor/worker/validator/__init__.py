@@ -1,4 +1,5 @@
 import json
+import dateutil
 import posixpath
 import common.event
 from common.dao.filestore import FileChangedError
@@ -80,30 +81,27 @@ class ValidatorWorker(QueuePollingWorker):
         except ValueError as e:
             raise FileIsNotJSON() from e
 
+    def get_archive_key_from_event(self, event, prefix):
+        obj = event['s3']['object']
+        date = dateutil.parser.parse(event['eventTime']).date()
+        private, user, inbox, filename = (part for part in obj['key'].split('/') if part)
+        return posixpath.join(prefix, str(date.year), str(date.month), str(date.day), user, filename)
+
     def move_file_to_archive(self, event, prefix):
         obj = event['s3']['object']
+        key = self.get_archive_key_from_event(event, prefix)
         self.unprocessed_filestore_dao.move(
             key=obj['key'],
             etag=obj['eTag'],
-            target_key=posixpath.join(
-                prefix,
-                obj['key']
-            ),
+            target_key=key,
             target_bucket=conf.ARCHIVE_BUCKET
         )
+        self.logger.info('File %s saved into archive as %s', obj['key'], key)
 
     def move_file_to_valid_dir(self, event):
-        self.logger.info(
-            'File %s moved to archive valid dir',
-            event['s3']['object']['key']
-        )
         self.move_file_to_archive(event, conf.ARCHIVE_BUCKET_VALID_DIR)
 
     def move_file_to_invalid_dir(self, event):
-        self.logger.info(
-            'File %s moved to archive invalid dir',
-            event['s3']['object']['key']
-        )
         self.move_file_to_archive(event, conf.ARCHIVE_BUCKET_INVALID_DIR)
 
 

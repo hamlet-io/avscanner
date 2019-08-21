@@ -5,6 +5,9 @@ from processor.dao import (
     conf
 )
 from processor.worker.virus_scanner import VirusScannerWorker
+from tests.integration.conftest import (
+    event_filename_to_unprocessed_key
+)
 
 
 def test(fill_unprocessed_bucket, clear_queues, clear_buckets, clear_tmp):
@@ -47,7 +50,7 @@ def test(fill_unprocessed_bucket, clear_queues, clear_buckets, clear_tmp):
         'badfilenameshouldnotexist',
         '--no-summary'
     ]
-    filename = '2019/1/2/user/valid.json'
+    filename = '2019-1-2-0-user-valid.json'
     virus_scanning_queue_dao.post(
         body=json.dumps(put[filename]),
         delay=0
@@ -58,9 +61,12 @@ def test(fill_unprocessed_bucket, clear_queues, clear_buckets, clear_tmp):
     assert message
     virus_scanning_queue_dao.delete(message=message)
     worker.VIRUS_SCAN_COMMAND = VirusScannerWorker.VIRUS_SCAN_COMMAND
+    assert not quarantine_filestore_dao.get(
+        key=event_filename_to_unprocessed_key(filename)
+    )
 
     # valid file, not a virus
-    filename = '2019/1/2/user/valid.json'
+    filename = '2019-1-2-0-user-valid.json'
     virus_scanning_queue_dao.post(
         body=json.dumps(put[filename]),
         delay=0
@@ -69,12 +75,14 @@ def test(fill_unprocessed_bucket, clear_queues, clear_buckets, clear_tmp):
     message = validation_queue_dao.get(wait_time=1)
     assert message
     validation_queue_dao.delete(message)
-    assert not quarantine_filestore_dao.get(key=filename)
+    assert not quarantine_filestore_dao.get(
+        key=event_filename_to_unprocessed_key(filename)
+    )
 
     # file changed error
-    filename = '2019/1/2/user/valid.json'
+    filename = '2019-1-2-0-user-valid.json'
     unprocessed_filestore_dao.post(
-        key=filename,
+        key=event_filename_to_unprocessed_key(filename),
         body='New body'
     )
     virus_scanning_queue_dao.post(
@@ -83,17 +91,21 @@ def test(fill_unprocessed_bucket, clear_queues, clear_buckets, clear_tmp):
     )
     assert next(worker)
     assert not validation_queue_dao.get(wait_time=1)
-    assert not quarantine_filestore_dao.get(key=filename)
+    assert not quarantine_filestore_dao.get(
+        key=event_filename_to_unprocessed_key(filename)
+    )
 
     # test virus
-    filename = '2019/1/3/user/virus.json'
+    filename = '2019-1-3-1-user-virus.json'
     virus_scanning_queue_dao.post(
         body=json.dumps(put[filename]),
         delay=0
     )
     assert next(worker)
     assert not validation_queue_dao.get(wait_time=1)
-    assert quarantine_filestore_dao.get(key=filename)
+    assert quarantine_filestore_dao.get(
+        key=event_filename_to_unprocessed_key(filename)
+    )
 
     # valid file, not a virus, size too large
     clear_tmp()
@@ -104,11 +116,13 @@ def test(fill_unprocessed_bucket, clear_queues, clear_buckets, clear_tmp):
 
     worker.MAX_FILE_SIZE = -1
 
-    filename = '2019/1/2/user/valid.json'
+    filename = '2019-1-2-0-user-valid.json'
     virus_scanning_queue_dao.post(
         body=json.dumps(put[filename]),
         delay=0
     )
     assert next(worker)
     assert not validation_queue_dao.get(wait_time=1)
-    assert quarantine_filestore_dao.get(key=filename)
+    assert quarantine_filestore_dao.get(
+        key=event_filename_to_unprocessed_key(filename)
+    )

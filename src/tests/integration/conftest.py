@@ -1,5 +1,6 @@
 import os
 import io
+import datetime
 import subprocess
 import shutil
 import string
@@ -96,6 +97,42 @@ def clear_buckets():
     return fixture
 
 
+# utc datetime
+def event_filename_to_event_time(filename):
+    year, month, day, timestamp_offset, user, bucket_filename = filename.split('-')
+    return datetime.datetime(
+        year=int(year),
+        month=int(month),
+        day=int(day),
+        tzinfo=datetime.timezone(datetime.timedelta(hours=0))
+    )
+
+
+# aws apmlify like key
+def event_filename_to_unprocessed_key(filename):
+    year, month, day, timestamp_offset, user, bucket_filename = filename.split('-')
+    eventTime = event_filename_to_event_time(filename)
+    return posixpath.join(
+        'private',
+        user,
+        'submissionInbox',
+        '{}.json'.format(int(eventTime.timestamp()) + int(timestamp_offset))
+    )
+
+
+# processed file key
+def event_filename_to_archive_key(filename):
+    year, month, day, timestamp_offset, user, bucket_filename = filename.split('-')
+    eventTime = event_filename_to_event_time(filename)
+    return posixpath.join(
+        str(eventTime.year),
+        str(eventTime.month),
+        str(eventTime.day),
+        user,
+        '{}.json'.format(int(eventTime.timestamp()) + int(timestamp_offset))
+    )
+
+
 @pytest.fixture(scope='session')
 def fill_unprocessed_bucket():
     with open(TEST_PUT_EVENT_TEMPLATE_FILE) as f:
@@ -107,8 +144,10 @@ def fill_unprocessed_bucket():
         files = os.listdir(TEST_FILES_DIR)
         for filename in files:
             # writing file to bucket
+            year, month, day, user, timestamp_offset, bucket_filename = filename.split('-')
             realname = os.path.join(TEST_FILES_DIR, filename)
-            key = posixpath.join(*filename.split('-'))
+            eventTime = event_filename_to_event_time(filename)
+            key = event_filename_to_unprocessed_key(filename)
             bucket = s3.Bucket(name=UNPROCESSED_BUCKET)
             with open(realname, 'rb') as f:
                 body = f.read()
@@ -122,9 +161,10 @@ def fill_unprocessed_bucket():
                 size=obj.content_length,
                 etag=obj.e_tag.replace('"', ''),  # etag for some reason contains ""
                 bucket=UNPROCESSED_BUCKET,
-                key=obj.key
+                key=obj.key,
+                eventTime=eventTime.isoformat()
             )
-            put[obj.key] = json.loads(event_text)
+            put[filename] = json.loads(event_text)
         return dict(put=put)
     return fixture
 
