@@ -20,9 +20,17 @@ class Queue:
     ):
         self.sqs = boto3.resource('sqs', **connection_conf)
         self.exceptions = self.sqs.meta.client.exceptions
-        self.queue = self.sqs.get_queue_by_name(
-            QueueName=queue
-        )
+        self.__queue_name = queue
+
+    @property
+    def queue(self):
+        try:
+            return self.__queue
+        except AttributeError:
+            self.__queue = self.sqs.get_queue_by_name(
+                QueueName=self.__queue_name
+            )
+            return self.__queue
 
     def get(
         self,

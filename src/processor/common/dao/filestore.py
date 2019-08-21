@@ -20,7 +20,15 @@ class FileStore:
     def __init__(self, bucket=None, connection_conf=None):
         self.s3 = boto3.resource('s3', **connection_conf)
         self.exceptions = self.s3.meta.client.exceptions
-        self.bucket = self.s3.Bucket(bucket)
+        self.__bucket_name = bucket
+
+    @property
+    def bucket(self):
+        try:
+            return self.__bucket
+        except AttributeError:
+            self.__bucket = self.s3.Bucket(self.__bucket_name)
+            return self.__bucket
 
     def get(
         self,
