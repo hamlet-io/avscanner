@@ -1,5 +1,6 @@
 import os
 import io
+import urllib
 import datetime
 import subprocess
 import shutil
@@ -161,7 +162,8 @@ def fill_unprocessed_bucket():
                 size=obj.content_length,
                 etag=obj.e_tag.replace('"', ''),  # etag for some reason contains ""
                 bucket=UNPROCESSED_BUCKET,
-                key=obj.key,
+                # aws uses urlencoded keys
+                key=urllib.parse.quote(obj.key),
                 eventTime=eventTime.isoformat()
             )
             put[filename] = json.loads(event_text)

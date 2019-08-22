@@ -27,7 +27,11 @@ def test_loads():
 def test_loads_object_created():
     e = {
         "eventName": "ObjectCreated:",
-        "s3": ""
+        "s3": {
+            "object": {
+                "key": "key"
+            }
+        }
     }
     data = {
         "Records": [e]
@@ -48,6 +52,13 @@ def test_loads_object_created():
     invalid_data['Records'][0]['eventName'] = "ObjectDeleted:"
     with pytest.raises(event.InvalidEventError):
         event.loads_s3_object_created_event(json.dumps(invalid_data))
+
+    # testing key url decode
+    url_encoded_key_data = copy.deepcopy(data)
+    url_encoded_key_data['Records'][0]['s3']['object']['key'] = \
+        'private%2Fuser%3Afname%3Alname%2FsubmissionInbox%2F100-100-10.json'
+    parsed = event.loads_s3_object_created_event(json.dumps(url_encoded_key_data))
+    assert parsed['s3']['object']['key'] == 'private/user:fname:lname/submissionInbox/100-100-10.json'
 
 
 @mock.patch("processor.common.event.UNPROCESSED_BUCKET", UNPROCESSED_BUCKET_NAME)

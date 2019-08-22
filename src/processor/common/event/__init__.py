@@ -1,4 +1,5 @@
 import json
+import urllib
 from dao.conf import UNPROCESSED_BUCKET
 
 
@@ -31,6 +32,8 @@ def loads_s3_object_created_event(text):
         if not event['eventName'].startswith('ObjectCreated:'):
             raise InvalidEventError()
         event['s3']  # checking that key exists
+        obj = event['s3']['object']
+        obj['key'] = urllib.parse.unquote(obj['key'])
         return event
     except KeyError as e:
         raise MissingEventFieldError(str(e))
