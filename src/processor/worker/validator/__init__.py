@@ -59,6 +59,13 @@ class ValidatorWorker(QueuePollingWorker):
             self.move_file_to_invalid_dir(event)
             return True
         except FileChangedError:
+            self.logger.info('Event: %s', event)
+            self.logger.info(
+                'File object: %s',
+                self.unprocessed_filestore_dao.get(
+                    key=event['s3']['object']['key']
+                )
+            )
             self.logger.error(
                 'File %s changed during processing',
                 event['s3']['object']['key'],

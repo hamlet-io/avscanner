@@ -45,30 +45,37 @@ def test(fill_unprocessed_bucket, clear_queues, clear_buckets, clear_tmp):
 
     put = unprocessed_bucket_events['put']
 
+    # testing valid file processing
     filename = '2019-1-2-0-user-valid.json'
     validation_queue_dao.post(
         body=json.dumps(put[filename]),
         delay=0
     )
     assert next(worker)
+    # message must be deleted
     assert not validation_queue_dao.get()
+    # file moved to archive valid dir
     assert archive_filestore_dao.get(
         key=posixpath.join(
             conf.ARCHIVE_BUCKET_VALID_DIR,
             event_filename_to_archive_key(filename)
         )
     )
+    # file must be removed from unprocessed filestore
+    assert not unprocessed_filestore_dao.get(
+        key=event_filename_to_unprocessed_key(filename)
+    )
 
     # testing file changed during processing
     unprocessed_filestore_dao.post(
         body='New body',
-        key=filename
+        key=event_filename_to_unprocessed_key(filename)
     )
     # deleting file from archive to check that it wasn't added
     archive_filestore_dao.delete(
         key=posixpath.join(
             conf.ARCHIVE_BUCKET_VALID_DIR,
-            filename
+            event_filename_to_archive_key(filename)
         )
     )
     validation_queue_dao.post(
@@ -82,22 +89,32 @@ def test(fill_unprocessed_bucket, clear_queues, clear_buckets, clear_tmp):
     assert not archive_filestore_dao.get(
         key=posixpath.join(
             conf.ARCHIVE_BUCKET_VALID_DIR,
-            filename
+            event_filename_to_archive_key(filename)
         )
     )
+    assert unprocessed_filestore_dao.get(
+        key=event_filename_to_unprocessed_key(filename)
+    )
 
+    # testing invalid file
     filename = '2019-1-1-0-user-invalid.json'
     validation_queue_dao.post(
         body=json.dumps(put[filename]),
         delay=0
     )
     assert next(worker)
+    # message removed
     assert not validation_queue_dao.get()
+    # file must be moved to invalid archive dir
     assert archive_filestore_dao.get(
         key=posixpath.join(
             conf.ARCHIVE_BUCKET_INVALID_DIR,
             event_filename_to_archive_key(filename)
         )
+    )
+    # file must be removed from unprocessed filestore
+    assert not unprocessed_filestore_dao.get(
+        key=event_filename_to_unprocessed_key(filename)
     )
 
     # test unexpected error, message must remain in the queue
