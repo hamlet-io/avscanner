@@ -67,9 +67,10 @@ class VirusScannerWorker(QueuePollingWorker):
             self.logger.error(message.body, exc_info=True)
             return True
         except FileChangedError:
-            self.logger.warn(
+            self.logger.error(
                 'File %s changed during processing',
-                event['s3']['object']['key']
+                event['s3']['object']['key'],
+                exc_info=True
             )
             return True
         except Exception:

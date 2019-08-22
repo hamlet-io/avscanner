@@ -59,9 +59,10 @@ class ValidatorWorker(QueuePollingWorker):
             self.move_file_to_invalid_dir(event)
             return True
         except FileChangedError:
-            self.logger.warn(
+            self.logger.error(
                 'File %s changed during processing',
-                event['s3']['object']['key']
+                event['s3']['object']['key'],
+                exc_info=True
             )
             return True
         except Exception:
