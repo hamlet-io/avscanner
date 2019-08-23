@@ -23,14 +23,21 @@ from tests.integration.conftest import (
 logger = logging.getLogger('COOPERATION')
 
 
-NOW = datetime.datetime(2019, 2, 1).date()
+NOW = datetime.datetime(
+    year=2019,
+    month=2,
+    day=1,
+    hour=0,
+    minute=0,
+    tzinfo=datetime.timezone(datetime.timedelta(hours=0))
+)
 
 
 COMPRESSED_ARCHIVE_FILE_PATH = '/tmp/compressed.zip'
 DOWNLOAD_PATH_ARCHIVED_FILES = '/tmp/archive'
 
 
-@mock.patch('processor.worker.archiver.ArchiverWorker.get_current_date', return_value=NOW)
+@mock.patch('processor.worker.archiver.ArchiverWorker.get_current_utc_datetime', return_value=NOW)
 def test(
     get_current_date,
     fill_unprocessed_bucket,

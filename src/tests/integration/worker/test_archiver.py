@@ -16,8 +16,11 @@ DOWNLOAD_PATH_ARCHIVED_FILES = '/tmp/archive'
 NOW = datetime.datetime(
     year=2019,
     month=2,
-    day=1
-).date()
+    day=1,
+    hour=0,
+    minute=0,
+    tzinfo=datetime.timezone(datetime.timedelta(hours=0))
+)
 
 PREFIX = 'valid/2019/1/'
 
@@ -60,7 +63,7 @@ def validate_archive_files(unzipped_dir, files, prefix):
     assert len(files) == number_of_files
 
 
-@mock.patch('processor.worker.archiver.ArchiverWorker.get_current_date', return_value=NOW)
+@mock.patch('processor.worker.archiver.ArchiverWorker.get_current_utc_datetime', return_value=NOW)
 def test_archivation(get_current_date, clear_tmp, clear_buckets):
     clear_tmp()
     clear_buckets()
@@ -103,7 +106,7 @@ def test_archivation(get_current_date, clear_tmp, clear_buckets):
     validate_archive_files(DOWNLOAD_PATH_ARCHIVED_FILES, archive_files, PREFIX)
 
 
-@mock.patch('processor.worker.archiver.ArchiverWorker.get_current_date', return_value=NOW)
+@mock.patch('processor.worker.archiver.ArchiverWorker.get_current_utc_datetime', return_value=NOW)
 def test_unexpected_error(get_current_date, clear_tmp, clear_buckets):
     clear_tmp()
     clear_buckets()
@@ -150,7 +153,7 @@ def test_no_files_to_archive(clear_tmp, clear_buckets):
     worker.start()
 
 
-@mock.patch('processor.worker.archiver.ArchiverWorker.get_current_date', return_value=NOW)
+@mock.patch('processor.worker.archiver.ArchiverWorker.get_current_utc_datetime', return_value=NOW)
 def test_archive_exists(get_current_date, clear_tmp, clear_buckets):
     clear_tmp()
     clear_buckets()

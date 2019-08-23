@@ -2,4 +2,5 @@ coverage
 pytest
 pytest-cov
 sentry_sdk
+pytz
 boto3
