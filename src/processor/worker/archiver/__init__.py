@@ -3,6 +3,7 @@ import time
 import tempfile
 import subprocess
 import datetime
+import pytz
 from common import loggers
 from dao import (
     conf,
@@ -27,6 +28,8 @@ class ArchiveExists(Exception):
 
 
 class ArchiverWorker:
+
+    TIMEZONE = pytz.timezone(os.environ['ARCHIVE_TIMEZONE'])
 
     def __init__(
         self,
@@ -54,13 +57,17 @@ class ArchiverWorker:
         self.logger.info('Compressed archive path %s', self.compressed_archive_file_path)
 
     # for easy mocking
-    def get_current_date(self):
-        return datetime.datetime.utcnow().date()
+    def get_current_utc_datetime(self):
+        return datetime.datetime.utcnow()
+
+    # date must be localized to be in synch with validator worker
+    def get_localized_date(self):
+        return self.get_current_utc_datetime().astimezone(self.TIMEZONE).date()
 
     # this will return last day of previous month
     # meaning that created archive will contain files uploaded last month
     def get_archive_date(self):
-        date = self.get_current_date()
+        date = self.get_localized_date()
         date.replace(day=1)
         date -= datetime.timedelta(days=1)
         return date

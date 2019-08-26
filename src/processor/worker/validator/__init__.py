@@ -1,3 +1,5 @@
+import os
+import pytz
 import json
 import dateutil
 import posixpath
@@ -24,6 +26,8 @@ logger = loggers.logging.getLogger('VALIDATOR_WORKER')
 
 
 class ValidatorWorker(QueuePollingWorker):
+
+    TIMEZONE = pytz.timezone(os.environ['ARCHIVE_TIMEZONE'])
 
     def __init__(
         self,
@@ -91,7 +95,15 @@ class ValidatorWorker(QueuePollingWorker):
 
     def get_archive_key_from_event(self, event, prefix):
         obj = event['s3']['object']
-        date = dateutil.parser.parse(event['eventTime']).date()
+        creation_time = dateutil.parser.parse(event['eventTime'])
+        localized_creation_time = creation_time.astimezone(self.TIMEZONE)
+        self.logger.info(
+            'Creation time: %s, Localized: %s, TZ: %s',
+            creation_time,
+            localized_creation_time,
+            self.TIMEZONE
+        )
+        date = localized_creation_time.date()
         private, user, inbox, filename = (part for part in obj['key'].split('/') if part)
         return posixpath.join(prefix, str(date.year), str(date.month), str(date.day), user, filename)
 

@@ -1,4 +1,5 @@
 import os
+import pytz
 import io
 import urllib
 import datetime
@@ -19,6 +20,7 @@ TEST_PUT_EVENT_TEMPLATE_FILE = 'tests/data/event/put/template.json'
 ARCHIVE_BUCKET = os.environ['ARCHIVE_BUCKET_NAME']
 UNPROCESSED_BUCKET = os.environ['UNPROCESSED_BUCKET_NAME']
 QUARANTINE_BUCKET = os.environ['QUARANTINE_BUCKET_NAME']
+ARCHIVE_TIMEZONE = os.environ['ARCHIVE_TIMEZONE']
 
 VALID_BUCKETS = [
     ARCHIVE_BUCKET,
@@ -98,14 +100,15 @@ def clear_buckets():
     return fixture
 
 
-# utc datetime
+# localized datetime
 def event_filename_to_event_time(filename):
     year, month, day, timestamp_offset, user, bucket_filename = filename.split('-')
-    return datetime.datetime(
-        year=int(year),
-        month=int(month),
-        day=int(day),
-        tzinfo=datetime.timezone(datetime.timedelta(hours=0))
+    return pytz.timezone(ARCHIVE_TIMEZONE).localize(
+        datetime.datetime(
+            year=int(year),
+            month=int(month),
+            day=int(day),
+        )
     )
 
 
