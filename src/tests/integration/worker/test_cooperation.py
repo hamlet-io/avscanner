@@ -16,6 +16,9 @@ from tests.integration.worker.test_archiver import (
     unzip_archive,
     validate_archive_files
 )
+from tests.integration.worker.test_virus_scanner import (
+    event_filename_to_report_key
+)
 from tests.integration.conftest import (
     event_filename_to_unprocessed_key,
     event_filename_to_archive_key
@@ -120,13 +123,8 @@ def test(
             assert quarantine_filestore_dao.get(
                 key=key
             )
-            report_filename = posixpath.splitext(posixpath.basename(key))[0] + ".report.json"
-            report_key = posixpath.join(
-                posixpath.dirname(key),
-                report_filename
-            )
             assert quarantine_filestore_dao.get(
-                key=report_key
+                key=event_filename_to_report_key(filename)
             )
 
         assert not unprocessed_filestore_dao.get(key=event_filename_to_unprocessed_key(filename))

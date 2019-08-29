@@ -1,4 +1,5 @@
 import json
+import posixpath
 from processor.dao import (
     queue,
     filestore,
@@ -11,10 +12,20 @@ from tests.integration.conftest import (
 )
 
 
+def event_filename_to_report_key(filename):
+    key = event_filename_to_unprocessed_key(filename)
+    report_filename = posixpath.splitext(posixpath.basename(key))[0] + '.report.json'
+    return posixpath.join(
+        posixpath.dirname(key),
+        report_filename
+    )
+
+
 def test(fill_unprocessed_bucket, clear_queues, clear_buckets, clear_tmp):
     clear_tmp()
     clear_queues()
     clear_buckets()
+
     unprocessed_bucket_events = fill_unprocessed_bucket()
     virus_scanning_queue_dao = queue.VirusScanning(
         conf.get_sqs_env_conf()
@@ -112,6 +123,9 @@ def test(fill_unprocessed_bucket, clear_queues, clear_buckets, clear_tmp):
     assert quarantine_filestore_dao.get(
         key=event_filename_to_unprocessed_key(filename)
     )
+    assert quarantine_filestore_dao.get(
+        key=event_filename_to_report_key(filename)
+    )
 
     # valid file, not a virus, size too large
     unprocessed_bucket_events = fill_unprocessed_bucket()
@@ -128,4 +142,7 @@ def test(fill_unprocessed_bucket, clear_queues, clear_buckets, clear_tmp):
     assert not validation_queue_dao.get(wait_time=1)
     assert quarantine_filestore_dao.get(
         key=event_filename_to_unprocessed_key(filename)
+    )
+    assert quarantine_filestore_dao.get(
+        key=event_filename_to_report_key(filename)
     )
