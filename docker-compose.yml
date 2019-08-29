@@ -5,6 +5,20 @@ networks:
     name: passport-scanner-data
 
 services:
+  localstack:
+    image: psd-localstack
+    container_name: psd-localstack
+    build:
+      context: ./localstack
+      dockerfile: ./Dockerfile
+    environment:
+      - DEBUG=1
+    ports:
+      - '10000-10001:10000-10001'
+    restart: on-failure
+    networks:
+      - internal
+
   minio:
     image: psd-minio
     container_name: psd-minio
@@ -41,6 +55,7 @@ services:
     depends_on:
       - minio
       - elasticmq
+      - localstack
     env_file:
       - .env
     volumes:

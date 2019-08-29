@@ -2,6 +2,7 @@ import json
 from processor.dao import (
     queue,
     filestore,
+    notifications,
     conf
 )
 from processor.worker.virus_scanner import VirusScannerWorker
@@ -27,10 +28,15 @@ def test(fill_unprocessed_bucket, clear_queues, clear_buckets, clear_tmp):
     quarantine_filestore_dao = filestore.Quarantine(
         conf.get_s3_env_conf()
     )
+    virus_notifications_dao = notifications.Virus(
+        conf.get_sns_env_conf()
+    )
     worker = VirusScannerWorker(
         virus_scanning_queue_dao=virus_scanning_queue_dao,
         validation_queue_dao=validation_queue_dao,
-        unprocessed_filestore_dao=unprocessed_filestore_dao
+        unprocessed_filestore_dao=unprocessed_filestore_dao,
+        quarantine_filestore_dao=quarantine_filestore_dao,
+        virus_notifications_dao=virus_notifications_dao
     )
     worker.MESSAGE_VISIBILITY_TIMEOUT = 0
     worker.MESSAGE_WAIT_TIME = 0
@@ -108,9 +114,6 @@ def test(fill_unprocessed_bucket, clear_queues, clear_buckets, clear_tmp):
     )
 
     # valid file, not a virus, size too large
-    clear_tmp()
-    clear_buckets()
-    clear_queues()
     unprocessed_bucket_events = fill_unprocessed_bucket()
     put = unprocessed_bucket_events['put']
 

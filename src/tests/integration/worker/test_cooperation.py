@@ -6,6 +6,7 @@ from unittest import mock
 from processor.dao import (
     queue,
     filestore,
+    notifications,
     conf
 )
 from processor.worker.validator import ValidatorWorker
@@ -64,6 +65,9 @@ def test(
     unprocessed_filestore_dao = filestore.Unprocessed(
         conf.get_s3_env_conf()
     )
+    virus_notifications_dao = notifications.Virus(
+        conf.get_sns_env_conf()
+    )
 
     archiver_worker = ArchiverWorker(
         archive_filestore_dao=archive_filestore_dao
@@ -71,7 +75,9 @@ def test(
     virus_scanner_worker = VirusScannerWorker(
         virus_scanning_queue_dao=virus_scanning_queue_dao,
         validation_queue_dao=validation_queue_dao,
-        unprocessed_filestore_dao=unprocessed_filestore_dao
+        unprocessed_filestore_dao=unprocessed_filestore_dao,
+        quarantine_filestore_dao=quarantine_filestore_dao,
+        virus_notifications_dao=virus_notifications_dao
     )
     validator_worker = ValidatorWorker(
         validation_queue_dao=validation_queue_dao,
@@ -114,6 +120,15 @@ def test(
             assert quarantine_filestore_dao.get(
                 key=key
             )
+            report_filename = posixpath.splitext(posixpath.basename(key))[0] + ".report.json"
+            report_key = posixpath.join(
+                posixpath.dirname(key),
+                report_filename
+            )
+            assert quarantine_filestore_dao.get(
+                key=report_key
+            )
+
         assert not unprocessed_filestore_dao.get(key=event_filename_to_unprocessed_key(filename))
 
     logger.info('Testing non JSON file put into unprocessed bucket')

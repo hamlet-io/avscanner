@@ -36,6 +36,12 @@ VALID_QUEUES = [
     VIRUS_SCANNING_QUEUE
 ]
 
+VIRUS_NOTIFICATION_TOPIC = os.environ.get('VIRUS_NOTIFICATION_TOPIC_ARN')
+
+VALID_TOPICS = [
+    VIRUS_NOTIFICATION_TOPIC
+]
+
 S3_CONNECTION_DATA = dict(
     aws_access_key_id=os.environ['AWS_S3_ACCESS_KEY_ID'],
     aws_secret_access_key=os.environ['AWS_S3_SECRET_ACCESS_KEY'],
@@ -49,6 +55,13 @@ SQS_CONNECTION_DATA = dict(
     aws_secret_access_key=os.environ['AWS_SQS_SECRET_ACCESS_KEY'],
     endpoint_url=os.environ['AWS_SQS_ENDPOINT_URL'],
     region_name=os.environ['AWS_SQS_REGION']
+)
+
+SNS_CONNECTION_DATA = dict(
+    aws_access_key_id=os.environ['AWS_SNS_ACCESS_KEY_ID'],
+    aws_secret_access_key=os.environ['AWS_SNS_SECRET_ACCESS_KEY'],
+    endpoint_url=os.environ['AWS_SNS_ENDPOINT_URL'],
+    region_name=os.environ['AWS_SNS_REGION']
 )
 
 
@@ -69,6 +82,16 @@ def create_buckets():
 
     for name in VALID_BUCKETS:
         create(name)
+
+
+# creating sns topics
+def create_topics():
+    sns = boto3.resource('sns', **SNS_CONNECTION_DATA)
+
+    for arn in VALID_TOPICS:
+        name = arn.split(':')[-1]
+        topic = sns.create_topic(Name=name)
+        assert topic.arn == arn
 
 
 @pytest.fixture(scope='session')
@@ -201,3 +224,4 @@ def check_clamdscan():
 def pytest_sessionstart():
     check_clamdscan()
     create_buckets()
+    create_topics()

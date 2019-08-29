@@ -26,6 +26,9 @@ Also `.env` file contains connection parameters for both sqs and s3 as well as f
 1. Quarantine - contains potentially hazardous files/viruses.
 1. Unprocessed - contains raw unprocessed files which virus scanner and validator workers will process.
 
+#### Notifications(SNS Topics):
+1. Virus - notifies subscribers about detection of a virus in the unprocessed bucket
+
 ##### Note:
 Passport scanner data bucket files must always have the next key structure:
 
@@ -38,7 +41,7 @@ Otherwise event will be considered invalid and removed from the queue and file w
 1. Object created event gets posted into virus scanning queue.
 1. Virus scanner worker pulls the event from virus scanning queue and performs virus scan.
 1. Non virus files object created events forwarded into validation queue.
-1. Virus files moved to quarantine bucket.
+1. Virus files moved to quarantine bucket. Virus notification sent, copy of notification stored alongside quarantined files as `<filename>.report.json`.
 1. Validator worker pulls event from validation queue and performs validation.
 1. Valid files saved to archive bucket with `valid/` key prefix.
 1. Invalid files saved to archive bucket with `invalid/` key prefix.

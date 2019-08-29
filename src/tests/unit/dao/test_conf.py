@@ -6,6 +6,7 @@ from processor.dao import conf
 def test_configs_not_set():
     assert len(conf.get_sqs_env_conf()) == 0
     assert len(conf.get_s3_env_conf()) == 0
+    assert len(conf.get_sns_env_conf()) == 0
 
 
 @mock.patch('processor.dao.conf.os.environ', {
@@ -35,4 +36,19 @@ def test_sqs_env_conf():
         "aws_secret_access_key": "sqs_secret",
         "endpoint_url": "sqs_endpoint",
         "region_name": "sqs_region"
+    }
+
+
+@mock.patch('processor.dao.conf.os.environ', {
+    "AWS_SNS_ACCESS_KEY_ID": "sns_access",
+    "AWS_SNS_SECRET_ACCESS_KEY": "sns_secret",
+    "AWS_SNS_ENDPOINT_URL": "sns_endpoint",
+    "AWS_SNS_REGION": "sns_region"
+})
+def test_sns_env_conf():
+    assert conf.get_sns_env_conf() == {
+        "aws_access_key_id": "sns_access",
+        "aws_secret_access_key": "sns_secret",
+        "endpoint_url": "sns_endpoint",
+        "region_name": "sns_region"
     }
