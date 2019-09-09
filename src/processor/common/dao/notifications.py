@@ -25,6 +25,10 @@ class Notifications:
         body=None
     ):
         if isinstance(body, dict):
+            try:
+                body['default']
+            except KeyError as e:
+                raise ValueError('JSON must have "default" field') from e
             params = dict(
                 Message=json.dumps(body),
                 MessageStructure='json'

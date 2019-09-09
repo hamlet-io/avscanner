@@ -115,7 +115,11 @@ class VirusScannerWorker(QueuePollingWorker):
         message = {
             'key': key,
             'time': event['eventTime'],
-            'reason': reason
+            'reason': reason,
+            'default': 'File {} moved to quarantine. Reason: {}.'.format(
+                key,
+                reason
+            )
         }
         self.virus_notifications_dao.post(
             body=message
