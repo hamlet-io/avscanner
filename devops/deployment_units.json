@@ -1,4 +1,4 @@
 {
-    "Units" : ["processor-v1-validator", "processor-v1-avscanner", "processor-v1-validator"],
+    "Units" : ["processor-v1-validator", "processor-v1-avscanner", "processor-v1-archiver"],
     "Formats" : ["docker"]
 }
