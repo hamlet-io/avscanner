@@ -6,6 +6,8 @@ from sentry_sdk.integrations.logging import LoggingIntegration
 
 
 SENTRY_DSN = os.environ.get('SENTRY_DSN', default=None)
+SENTRY_ENVIRONMENT = os.environ.get('SENTRY_ENVIRONMENT', default=None)
+SENTRY_RELEASE = os.environ.get('SENTRY_RELEASE', default=None)
 
 
 if SENTRY_DSN:  # pragma: no cover
@@ -13,11 +15,15 @@ if SENTRY_DSN:  # pragma: no cover
         level=logging.INFO,        # Capture info and above as breadcrumbs
         event_level=logging.ERROR  # Send errors as events
     )
-
-    sentry_sdk.init(
+    sentry_sdk_init_kwargs = dict(
         dsn=SENTRY_DSN,
         integrations=[sentry_logging]
     )
+    if SENTRY_ENVIRONMENT:
+        sentry_sdk_init_kwargs['environment'] = SENTRY_ENVIRONMENT
+    if SENTRY_RELEASE:
+        sentry_sdk_init_kwargs['release'] = SENTRY_RELEASE
+    sentry_sdk.init(**sentry_sdk_init_kwargs)
 
 
 LOGGING = {
