@@ -1,4 +1,4 @@
-FROM localstack/localstack
+FROM localstack/localstack:0.10.2
 
 
 ENV SERVICES=sns:10001
