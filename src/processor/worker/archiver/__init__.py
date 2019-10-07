@@ -68,7 +68,7 @@ class ArchiverWorker:
     # meaning that created archive will contain files uploaded last month
     def get_archive_date(self):
         date = self.get_localized_date()
-        date.replace(day=1)
+        date = date.replace(day=1)
         date -= datetime.timedelta(days=1)
         return date
 

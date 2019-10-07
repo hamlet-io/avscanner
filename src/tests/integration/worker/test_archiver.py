@@ -16,7 +16,7 @@ DOWNLOAD_PATH_ARCHIVED_FILES = '/tmp/archive'
 NOW = datetime.datetime(
     year=2019,
     month=2,
-    day=1,
+    day=10,
     hour=0,
     minute=0,
     tzinfo=datetime.timezone(datetime.timedelta(hours=0))
