@@ -17,7 +17,11 @@ class QueuePollingWorker:
         return self
 
     def __next__(self):
-
+        self.logger.info(
+            'Getting message. Wait time: %s seconds. Visibility Timeout: %s seconds',
+            self.MESSAGE_WAIT_TIME,
+            self.MESSAGE_VISIBILITY_TIMEOUT
+        )
         message = self.__queue.get(
             wait_time=self.MESSAGE_WAIT_TIME,
             visibility_timeout=self.MESSAGE_VISIBILITY_TIMEOUT

@@ -86,10 +86,6 @@ def test(
         validation_queue_dao=validation_queue_dao,
         unprocessed_filestore_dao=unprocessed_filestore_dao
     )
-    virus_scanner_worker.MESSAGE_VISIBILITY_TIMEOUT = 60
-    virus_scanner_worker.MESSAGE_WAIT_TIME = 1
-    validator_worker.MESSAGE_VISIBILITY_TIMEOUT = 60
-    validator_worker.MESSAGE_WAIT_TIME = 1
 
     def post_event_to_virus_scanning_queue(category, filename):
         virus_scanning_queue_dao.post(

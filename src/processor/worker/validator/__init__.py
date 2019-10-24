@@ -27,6 +27,9 @@ logger = loggers.logging.getLogger('VALIDATOR_WORKER')
 
 class ValidatorWorker(QueuePollingWorker):
 
+    MESSAGE_WAIT_TIME = 10
+    MESSAGE_VISIBILITY_TIMEOUT = 30
+
     TIMEZONE = pytz.timezone(os.environ['ARCHIVE_TIMEZONE'])
 
     def __init__(
