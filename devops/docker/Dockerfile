@@ -20,12 +20,12 @@ ENTRYPOINT ["/src/docker/scripts/entrypoint.sh"]
 FROM base AS base_dev
 # no need to copy src directory for dev mode as it is mounted as a volume
 WORKDIR /src
-COPY src/requirements.txt requirements.txt
-RUN pip install -r requirements.txt
+COPY src/requirements.*.txt ./
+RUN pip install -r requirements.dev.txt -r requirements.prod.txt
 
 FROM base AS build
 
 COPY ./src /src
 WORKDIR /src
 
-RUN pip install -r requirements.txt
+RUN pip install -r requirements.prod.txt

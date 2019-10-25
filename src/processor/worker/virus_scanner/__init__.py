@@ -25,8 +25,8 @@ class VirusDetected(Exception):
 
 class VirusScannerWorker(QueuePollingWorker):
 
-    MESSAGE_WAIT_TIME = 10
-    MESSAGE_VISIBILITY_TIMEOUT = 30
+    MESSAGE_WAIT_TIME = int(os.environ['VIRUS_SCANNER_WORKER_MSG_WAIT_TIME'])
+    MESSAGE_VISIBILITY_TIMEOUT = int(os.environ['VIRUS_SCANNER_WORKER_MSG_VISIBILITY_TIMEOUT'])
 
     MAX_FILE_SIZE = 1024 * 1024 * int(os.environ['MAX_FILE_SIZE'])  # MB
 

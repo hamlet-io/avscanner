@@ -5,6 +5,6 @@ services:
     volumes:
       - '/var/run/docker.sock:/var/run/docker.sock'
     build:
-      target: build
+      target: base_dev
     environment:
       - APP_RUN_MODE=CI
