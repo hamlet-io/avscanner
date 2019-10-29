@@ -14,11 +14,14 @@ services:
     environment:
       - DEBUG=1
     ports:
-      - '10000-10001:10000-10001'
+      - '10000-10003:10000-10003'
     restart: on-failure
     networks:
       - internal
 
+  # can't remove minio because moto3 mocks which used by localstack
+  # can't mock IfMatch(ETAG precondition)
+  # Maybe, just maybe, I need to create pull to their repo to fix this 'issue'
   minio:
     image: psd-minio
     container_name: psd-minio
@@ -33,18 +36,6 @@ services:
     networks:
       - internal
 
-  elasticmq:
-    image: psd-elasticmq
-    container_name: psd-elasticmq
-    build:
-      context: ./elasticmq
-      dockerfile: ./Dockerfile
-    ports:
-      - '9324:9324'
-    restart: on-failure
-    networks:
-      - internal
-
   processor:
     image: psd-processor
     container_name: psd-processor
@@ -54,7 +45,6 @@ services:
       dockerfile: ./devops/docker/Dockerfile
     depends_on:
       - minio
-      - elasticmq
       - localstack
     env_file:
       - .env

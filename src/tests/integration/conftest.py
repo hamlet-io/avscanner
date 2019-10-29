@@ -84,6 +84,22 @@ def create_buckets():
         create(name)
 
 
+def create_queues():
+    sqs = boto3.resource('sqs', **SQS_CONNECTION_DATA)
+    exceptions = sqs.meta.client.exceptions
+    for queue in sqs.queues.all():
+        name = queue.attributes['QueueArn'].split(':')[-1]
+        if name in VALID_QUEUES:
+            queue.purge()
+        else:
+            queue.delete()
+    for name in VALID_QUEUES:
+        try:
+            sqs.create_queue(QueueName=name)
+        except exceptions.QueueNameExists:
+            pass
+
+
 # creating sns topics
 def create_topics():
     sns = boto3.resource('sns', **SNS_CONNECTION_DATA)
@@ -230,3 +246,4 @@ def pytest_sessionstart():
     check_clamdscan()
     create_buckets()
     create_topics()
+    create_queues()
