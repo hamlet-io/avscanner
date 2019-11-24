@@ -158,3 +158,15 @@ class FileStore:
             raise FileChangedError()
         object.delete()
         return 1
+
+    def list(self, key=None):
+        if key:
+            def filtered_gen():
+                for item in self.bucket.objects.filter(Prefix=key):
+                    yield item.key
+            return filtered_gen()
+        else:
+            def all_gen():
+                for item in self.bucket.objects.all():
+                    yield item.key
+            return all_gen()

@@ -135,6 +135,11 @@ def event_filename_to_event_time(filename):
     )
 
 
+# production like filename style
+def isoformat_time_filename(eventTime, offset_seconds):
+    return (eventTime + datetime.timedelta(seconds=offset_seconds)).isoformat()
+
+
 # aws apmlify like key
 def event_filename_to_unprocessed_key(filename):
     year, month, day, timestamp_offset, user, bucket_filename = filename.split('-')
@@ -143,7 +148,7 @@ def event_filename_to_unprocessed_key(filename):
         'private',
         user,
         'submissionInbox',
-        '{}.json'.format(int(eventTime.timestamp()) + int(timestamp_offset))
+        '{}.json'.format(isoformat_time_filename(eventTime, int(timestamp_offset)))
     )
 
 
@@ -156,7 +161,7 @@ def event_filename_to_archive_key(filename):
         str(eventTime.month),
         str(eventTime.day),
         user,
-        '{}.json'.format(int(eventTime.timestamp()) + int(timestamp_offset))
+        '{}.json'.format(isoformat_time_filename(eventTime, int(timestamp_offset)))
     )
 
 

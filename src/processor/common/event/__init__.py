@@ -1,5 +1,7 @@
 import json
 import urllib
+import posixpath
+import dateutil
 from dao.conf import UNPROCESSED_BUCKET
 
 
@@ -12,6 +14,10 @@ class InvalidEventDataError(InvalidEventError):
 
 
 class MissingEventFieldError(InvalidEventError):
+    pass
+
+
+class InvalidKeyFormat(InvalidEventError):
     pass
 
 
@@ -43,7 +49,7 @@ def validate_unprocessed_file_key(key):
     try:
         private, user, inbox, filename = (part for part in key.split('/') if part)
     except ValueError as e:
-        raise InvalidEventError('Key does not match expected format') from e
+        raise InvalidKeyFormat('Key does not match expected format') from e
 
 
 def loads_s3_unprocessed_bucket_object_created_event(text):
@@ -65,3 +71,39 @@ def loads_s3_unprocessed_bucket_object_created_event(text):
         return event
     except KeyError as e:
         raise MissingEventFieldError(str(e)) from e
+
+
+def parse_submission_time_from_key(key):
+    try:
+        private, user, inbox, filename = (part for part in key.split('/') if part)
+        return dateutil.parser.parse(posixpath.splitext(filename)[0])
+    except ValueError as e:
+        raise InvalidKeyFormat('Key does not match expected format') from e
+
+
+def create_minimal_valid_file_put_event(
+    key=None,
+    etag=None,
+    size=None,
+    bucket=None,
+    event_time=None,
+):
+    event_json = {
+      "Records": [
+        {
+          "eventTime": event_time.isoformat(),
+          "eventName": "ObjectCreated:Put",
+          "s3": {
+            "bucket": {
+              "name": bucket
+            },
+            "object": {
+              "key": key,
+              "size": size,
+              "eTag": etag,
+            }
+          }
+        }
+      ]
+    }
+    return json.dumps(event_json)

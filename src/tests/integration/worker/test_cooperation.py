@@ -12,6 +12,7 @@ from processor.dao import (
 from processor.worker.validator import ValidatorWorker
 from processor.worker.virus_scanner import VirusScannerWorker
 from processor.worker.archiver import ArchiverWorker
+from processor.worker.unprocessed_files_auditor import UnprocessedFilesAuditorWorker
 from tests.integration.worker.test_archiver import (
     unzip_archive,
     validate_archive_files
@@ -42,8 +43,10 @@ DOWNLOAD_PATH_ARCHIVED_FILES = '/tmp/archive'
 
 
 @mock.patch('processor.worker.archiver.ArchiverWorker.get_current_utc_datetime', return_value=NOW)
+@mock.patch('processor.worker.unprocessed_files_auditor.UnprocessedFilesAuditorWorker.get_utc_now', return_value=NOW)
 def test(
-    get_current_date,
+    get_utc_now,
+    get_current_utc_datetime,
     fill_unprocessed_bucket,
     clear_queues,
     clear_buckets,
@@ -86,6 +89,10 @@ def test(
         validation_queue_dao=validation_queue_dao,
         unprocessed_filestore_dao=unprocessed_filestore_dao
     )
+    unprocessed_files_auditor_worker = UnprocessedFilesAuditorWorker(
+        virus_scanning_queue_dao=virus_scanning_queue_dao,
+        unprocessed_filestore_dao=unprocessed_filestore_dao
+    )
 
     def post_event_to_virus_scanning_queue(category, filename):
         virus_scanning_queue_dao.post(
@@ -103,7 +110,7 @@ def test(
                     conf.ARCHIVE_BUCKET_VALID_DIR,
                     key
                 )
-            )
+            ), key
         elif category == 'invalid':
             key = event_filename_to_archive_key(filename)
             assert next(validator_worker)
@@ -112,13 +119,13 @@ def test(
                     conf.ARCHIVE_BUCKET_INVALID_DIR,
                     key
                 )
-            )
+            ), key
         elif category == 'virus':
             key = event_filename_to_unprocessed_key(filename)
             assert not next(validator_worker)
             assert quarantine_filestore_dao.get(
                 key=key
-            )
+            ), key
             assert quarantine_filestore_dao.get(
                 key=event_filename_to_report_key(filename)
             )
@@ -141,13 +148,20 @@ def test(
     process_file('virus', filename)
 
     logger.info('Putting couple more valid files to test archiver')
+    logger.info('Testing unprocessed files auditor worker. Missing events scenario...')
+    # MEMO:
+    # Order is essential because list operation which auditor uses sorts everything alphanumerically.
+    # At least that's how minio does it, other mock provider may break this part of test.
+    # The main idea here is that auditor post events for both of these files.
 
-    filename = '2019-1-4-0-user-valid.json'
-    post_event_to_virus_scanning_queue('put', filename)
-    process_file('valid', filename)
+    get_utc_now.return_value = (NOW + datetime.timedelta(days=30))
+    assert unprocessed_files_auditor_worker.get_utc_now() == get_utc_now()
+    unprocessed_files_auditor_worker.start()
 
     filename = '2019-1-3-0-user-valid.json'
-    post_event_to_virus_scanning_queue('put', filename)
+    process_file('valid', filename)
+
+    filename = '2019-1-4-0-user-valid.json'
     process_file('valid', filename)
 
     archive_files = {}

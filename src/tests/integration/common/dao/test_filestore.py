@@ -176,3 +176,34 @@ def test_bulk_delete(clear_buckets):
         for key, body in FILES.items():
             filestore.post(key=key, body=body)
         assert filestore.delete(recursive=True, key=prefix) == len(FILES)
+
+
+def test_list(clear_buckets):
+    clear_buckets()
+    filestore = FileStore(
+        bucket=BUCKET,
+        connection_conf=S3_CONNECTION_DATA
+    )
+    files = {
+        'a/b/1': b'value-ab1',
+        'a/b/2': b'value-ab2',
+        'b/a/1': b'value-ba1',
+        'b/a/2': b'value-ba2',
+        'b/a/3': b'value-ba3'
+    }
+    for prefix, count in {'a/b': 2, 'b/a': 3}.items():
+        for key, value in files.items():
+            filestore.post(key=key, body=value)
+        listed_count = 0
+        for key in filestore.list(key=prefix):
+            listed_count += 1
+            assert key in files
+            assert key.startswith(prefix)
+            assert filestore.get(key)['Body'].read() == files[key]
+        assert count == listed_count
+    listed_count = 0
+    for key in filestore.list():
+        listed_count += 1
+        assert key in files
+        assert filestore.get(key)['Body'].read() == files[key]
+    assert listed_count == len(files)

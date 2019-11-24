@@ -1,6 +1,8 @@
 import json
 import copy
+import datetime
 from unittest import mock
+import dateutil
 import pytest
 from processor.common import event
 
@@ -112,3 +114,26 @@ def test_validate_unprocessed_file_key():
     with pytest.raises(event.InvalidEventError):
         event.validate_unprocessed_file_key('/private/user/test/submissionInbox/00012.json')
     event.validate_unprocessed_file_key('private/user/submissionInbox/00000.json')
+
+
+def test_parse_submission_time_from_key():
+    key = 'private/user-id/submissionInbox/2019-11-18T14:11:50+08:00.json'
+    submission_time = event.parse_submission_time_from_key(key)
+    tzinfo = dateutil.tz.tzoffset(None, 8 * 60 * 60)
+    assert submission_time == datetime.datetime(2019, 11, 18, 14, 11, 50, tzinfo=tzinfo)
+
+
+def test_create_minimal_valid_file_put_event():
+    key = 'private/user-id/submissionInbox/2019-11-18T14:11:50+08:00.json'
+    event_time = datetime.datetime(2019, 11, 18, 14, 11, 50)
+    size = 10
+    bucket = event.UNPROCESSED_BUCKET
+    etag = 'etag'
+    event_body = event.create_minimal_valid_file_put_event(
+        key=key,
+        event_time=event_time,
+        size=size,
+        bucket=bucket,
+        etag=etag
+    )
+    event.loads_s3_unprocessed_bucket_object_created_event(event_body)

@@ -29,7 +29,7 @@ class QueuePollingWorker:
 
         if message is not None:
             self.logger.info('Message received:%s', message.id)
-            self.logger.info(message.body)
+            # self.logger.info(message.body)
             if self.process_message(message):
                 self.logger.info('Message processed succesfully, deleting message.')
                 self.__queue.delete(message=message)
