@@ -1,20 +1,20 @@
 FROM python:3.7-alpine AS base
 
-RUN apk update
-RUN apk add bash
+RUN apk update && apk add \
+    bash make zip \
+    clamav clamav-dev
+
+RUN chown clamav:clamav /var/lib/clamav && \
+        mkdir /var/run/clamav && chown clamav:clamav /var/run/clamav && \
+        chmod 755 /var/run/clamav
+
+RUN echo "Updating AV Definitions ${date}" && freshclam -v -u clamav
 
 ENV PYTHONPATH=/src/processor
-
 ENV PYTHONDONTWRITEBYTECODE=1
 
-COPY devops/docker/install-clamav.sh install-clamav.sh
-RUN sh install-clamav.sh
-
-COPY devops/docker/install.sh install.sh
-RUN sh install.sh
-
+RUN pip install --upgrade pip
 COPY devops/docker/clamd.conf /etc/clamav/clamd.conf
-
 ENTRYPOINT ["/src/docker/scripts/entrypoint.sh"]
 
 FROM base AS base_dev
