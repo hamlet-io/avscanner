@@ -1,3 +1,5 @@
+import os
+import datetime
 from common import loggers
 
 
@@ -42,7 +44,16 @@ class QueuePollingWorker:
         return True
 
     def start(self):  # pragma: no cover
-        self.logger.info('Started.')
+        try:
+            # Set START_TIMESTAMP using bash START_TIMESTAMP="$(date +%s)"
+            start_time = datetime.datetime.fromtimestamp(int(os.environ['START_TIMESTAMP']))
+            start_time = (datetime.datetime.utcnow() - start_time).total_seconds()
+        except (KeyError, ValueError):
+            start_time = None
+        if start_time:
+            self.logger.info('Started in %s seconds', start_time)
+        else:
+            self.logger.info('Started')
         try:
             for result in self:
                 pass

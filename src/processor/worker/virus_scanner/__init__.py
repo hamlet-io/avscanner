@@ -3,6 +3,7 @@ import json
 import posixpath
 import tempfile
 import subprocess
+import datetime
 import common.event
 from common import loggers
 from common.dao.filestore import FileChangedError
@@ -101,8 +102,11 @@ class VirusScannerWorker(QueuePollingWorker):
         )
 
     def scan_file(self):
+        start_time = datetime.datetime.now()
         self.logger.info('Scanning downloaded file')
         result = self.run_scan_command()
+        # NOTE: this log msg is used to help understand performance of the scans
+        self.logger.info('Scan completed in %s seconds', (datetime.datetime.now() - start_time).total_seconds())
         if result.stderr:
             raise Exception(result.stderr)
         if result.returncode == 1:

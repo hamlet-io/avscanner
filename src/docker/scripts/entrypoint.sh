@@ -35,4 +35,7 @@ function main() {
 }
 # echo "Sleeping to prevent exit..."
 # while true; do sleep 10s; done
+# recording start timestamp to use it in the worker's logs
+export START_TIMESTAMP="$(date +%s)"
+echo "START TIMESTAMP=$START_TIMESTAMP"
 main "$@"
