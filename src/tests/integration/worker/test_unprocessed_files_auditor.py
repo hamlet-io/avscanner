@@ -1,4 +1,5 @@
 import json
+import hashlib
 import posixpath
 import datetime
 from unittest import mock
@@ -31,7 +32,17 @@ def create_filename(
     offset_hours=None
 ):
     offset_hours = datetime.timedelta(hours=offset_hours) if offset_hours else datetime.timedelta()
-    return posixpath.join('private', user, 'submissionInbox', (submission_time + offset_hours).isoformat()) + '.json'
+    submission_time = (submission_time + offset_hours).isoformat()
+    upload_hash = hashlib.md5((user + submission_time).encode()).hexdigest()[:7]
+    return posixpath.join(
+        'private',
+        user,
+        'submissionInbox',
+        '{}-{}.json'.format(
+            submission_time,
+            upload_hash
+        )
+    )
 
 
 @mock.patch('processor.worker.unprocessed_files_auditor.UnprocessedFilesAuditorWorker.get_utc_now', return_value=NOW)
@@ -83,9 +94,11 @@ def test(get_utc_now, clear_queues, clear_buckets, fill_unprocessed_bucket):
         assert etag == file['ETag']
         assert size == file['ContentLength']
         assert bucket == unprocessed_filestore_dao.bucket.name
+        user, submission_time, upload_hash = processor.common.event.parse_unprocessed_file_key(key)
+        submission_time = submission_time.astimezone(LOCAL_TZ).isoformat()
         assert (
             event_time
-            == processor.common.event.parse_submission_time_from_key(key).astimezone(LOCAL_TZ).isoformat()
+            == submission_time
         )
         assert event_name == "ObjectCreated:Put"
     # testing that queue has no more than len(resend_files) messages

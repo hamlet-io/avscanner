@@ -7,6 +7,7 @@ import subprocess
 import shutil
 import string
 import json
+import hashlib
 import posixpath
 import boto3
 import pytest
@@ -159,25 +160,27 @@ def isoformat_time_filename(eventTime, offset_seconds):
 # aws apmlify like key
 def event_filename_to_unprocessed_key(filename):
     year, month, day, timestamp_offset, user, bucket_filename = filename.split('-')
+    upload_hash = hashlib.md5(filename.encode()).hexdigest()[:7]
     eventTime = event_filename_to_event_time(filename)
     return posixpath.join(
         'private',
         user,
         'submissionInbox',
-        '{}.json'.format(isoformat_time_filename(eventTime, int(timestamp_offset)))
+        '{}-{}.json'.format(isoformat_time_filename(eventTime, int(timestamp_offset)), upload_hash)
     )
 
 
 # processed file key
 def event_filename_to_archive_key(filename):
     year, month, day, timestamp_offset, user, bucket_filename = filename.split('-')
+    upload_hash = hashlib.md5(filename.encode()).hexdigest()[:7]
     eventTime = event_filename_to_event_time(filename)
     return posixpath.join(
         str(eventTime.year),
         str(eventTime.month),
         str(eventTime.day),
         user,
-        '{}.json'.format(isoformat_time_filename(eventTime, int(timestamp_offset)))
+        '{}-{}.json'.format(isoformat_time_filename(eventTime, int(timestamp_offset)), upload_hash)
     )
 
 

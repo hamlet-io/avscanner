@@ -48,7 +48,8 @@ class UnprocessedFilesAuditorWorker:
         try:
             try:
                 # using filename to get time when it was submitted
-                submission_time = common.event.parse_submission_time_from_key(key).astimezone(self.TIMEZONE)
+                user, submission_time, upload_hash = common.event.parse_unprocessed_file_key(key)
+                submission_time = submission_time.astimezone(self.TIMEZONE)
             except common.event.InvalidKeyFormat:
                 # handling invalid key scenario, highly improbable, but may happen
                 self.logger.error('Invalid key format: %s. Loading file to check last mod time', key)

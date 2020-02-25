@@ -5,18 +5,15 @@ from processor.worker.validator import ValidatorWorker
 
 def test_get_archive_key_from_event():
 
-    FILENAME = '000000.json'
-    USERNAME = 'user'
-
     def archive_key(
         year,
         month,
         day,
-        user=USERNAME,
-        filename=FILENAME,
+        user=None,
+        submission_time=None,
         prefix=''
     ):
-        key = f'{year}/{month}/{day}/{user}/{filename}'
+        key = f'{year}/{month}/{day}/{user}/{submission_time.isoformat()}-xxxxxxx.json'
         if prefix:
             return '/'.join([prefix, key])
         return key
@@ -40,15 +37,13 @@ def test_get_archive_key_from_event():
         )
 
     def create_event(
-        eventTime=None,
-        user=USERNAME,
-        filename=FILENAME
+        submission_time=None,
+        user=None
     ):
         return {
-            'eventTime': eventTime.isoformat(),
             's3': {
                 'object': {
-                    'key': f'private/{user}/submissionInbox/{filename}'
+                    'key': f'private/{user}/submissionInbox/{submission_time.isoformat()}-xxxxxxx.json'
                 }
             }
         }
@@ -57,33 +52,51 @@ def test_get_archive_key_from_event():
     worker.TIMEZONE = pytz.timezone('Australia/Canberra')
 
     # should not shift date
+    user = 'username'
+    submission_time = localized_creation_time(worker.TIMEZONE, 2019, 1, 1)
     event = create_event(
-        eventTime=localized_creation_time(worker.TIMEZONE, 2019, 1, 1),
+        user=user,
+        submission_time=submission_time,
     )
-    assert worker.get_archive_key_from_event(event, '') == archive_key(2019, 1, 1)
+    assert worker.get_archive_key_from_event(event, '') == archive_key(
+        2019, 1, 1,
+        user=user,
+        submission_time=submission_time
+    )
 
     # testing key structure
     user = 'testusername'
-    filename = 'testfilename'
+    submission_time = localized_creation_time(worker.TIMEZONE, 2019, 1, 1)
     event = create_event(
-        eventTime=localized_creation_time(worker.TIMEZONE, 2019, 1, 1),
         user=user,
-        filename=filename
+        submission_time=submission_time
     )
     assert worker.get_archive_key_from_event(event, 'valid') == archive_key(
         2019, 1, 1,
         user=user,
-        filename=filename,
+        submission_time=submission_time,
         prefix='valid'
     )
 
     # should shift date
+    submission_time = localized_creation_time(pytz.timezone('UTC'), 2019, 1, 1, 15)
     event = create_event(
-        eventTime=localized_creation_time(pytz.timezone('UTC'), 2019, 1, 1, 15)
+        user=user,
+        submission_time=submission_time
     )
-    assert worker.get_archive_key_from_event(event, '') == archive_key(2019, 1, 2)
+    assert worker.get_archive_key_from_event(event, '') == archive_key(
+        2019, 1, 2,
+        user=user,
+        submission_time=submission_time
+    )
 
+    submission_time = localized_creation_time(pytz.timezone('America/Detroit'), 2019, 1, 2, 10)
     event = create_event(
-        eventTime=localized_creation_time(pytz.timezone('America/Detroit'), 2019, 1, 2, 10)
+        user=user,
+        submission_time=submission_time
     )
-    assert worker.get_archive_key_from_event(event, '') == archive_key(2019, 1, 3)
+    assert worker.get_archive_key_from_event(event, '') == archive_key(
+        2019, 1, 3,
+        user=user,
+        submission_time=submission_time
+    )

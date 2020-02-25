@@ -1,7 +1,6 @@
 import os
 import pytz
 import json
-import dateutil
 import posixpath
 import common.event
 from common.dao.filestore import FileChangedError
@@ -98,7 +97,8 @@ class ValidatorWorker(QueuePollingWorker):
 
     def get_archive_key_from_event(self, event, prefix):
         obj = event['s3']['object']
-        creation_time = dateutil.parser.parse(event['eventTime'])
+        key = obj['key']
+        user, creation_time, upload_hash = common.event.parse_unprocessed_file_key(key)
         localized_creation_time = creation_time.astimezone(self.TIMEZONE)
         self.logger.info(
             'Creation time: %s, Localized: %s, TZ: %s',
@@ -107,8 +107,9 @@ class ValidatorWorker(QueuePollingWorker):
             self.TIMEZONE
         )
         date = localized_creation_time.date()
-        private, user, inbox, filename = (part for part in obj['key'].split('/') if part)
-        return posixpath.join(prefix, str(date.year), str(date.month), str(date.day), user, filename)
+        # taking basename of the filename as is
+        basename = posixpath.basename(key)
+        return posixpath.join(prefix, str(date.year), str(date.month), str(date.day), user, basename)
 
     def move_file_to_archive(self, event, prefix):
         obj = event['s3']['object']

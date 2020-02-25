@@ -72,7 +72,7 @@ def test_loads_s3_unprocessed_bucket_object_created_event():
                 "name": UNPROCESSED_BUCKET_NAME
             },
             "object": {
-                "key": "private/user/submissionInbox/00001.json"
+                "key": "private/user/submissionInbox/2019-11-18T14:11:50+08:00-xxxxxxx.json"
             }
         }
     }
@@ -106,21 +106,16 @@ def test_loads_s3_unprocessed_bucket_object_created_event():
         assert exc_info.value.args[0] == "'{}'".format(required[-1])
 
 
-def test_validate_unprocessed_file_key():
+def test_parse_unprocessed_file_key():
     with pytest.raises(event.InvalidEventError):
-        event.validate_unprocessed_file_key('bad key')
+        event.parse_unprocessed_file_key('bad key')
     with pytest.raises(event.InvalidEventError):
-        event.validate_unprocessed_file_key('/user/00012.json')
+        event.parse_unprocessed_file_key('/user/2019-11-18T14:11:50+08:00-xxxxxxx.json')
     with pytest.raises(event.InvalidEventError):
-        event.validate_unprocessed_file_key('/private/user/test/submissionInbox/00012.json')
-    event.validate_unprocessed_file_key('private/user/submissionInbox/00000.json')
-
-
-def test_parse_submission_time_from_key():
-    key = 'private/user-id/submissionInbox/2019-11-18T14:11:50+08:00.json'
-    submission_time = event.parse_submission_time_from_key(key)
-    tzinfo = dateutil.tz.tzoffset(None, 8 * 60 * 60)
-    assert submission_time == datetime.datetime(2019, 11, 18, 14, 11, 50, tzinfo=tzinfo)
+        event.parse_unprocessed_file_key('/private/user/submissionInbox/2019-11-18T14:11:50+08:00.json')
+    with pytest.raises(event.InvalidEventError):
+        event.parse_unprocessed_file_key('private/user/submissionInbox/2K18K-11-18T14:11:50+08:00-xxxxxxx.json')
+    event.parse_unprocessed_file_key('private/user/submissionInbox/2019-11-18T14:11:50+08:00-xxxxxxx.json')
 
 
 def test_create_minimal_valid_file_put_event():

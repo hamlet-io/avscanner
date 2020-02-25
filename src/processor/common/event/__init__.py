@@ -1,6 +1,6 @@
+import re
 import json
 import urllib
-import posixpath
 import dateutil
 from dao.conf import UNPROCESSED_BUCKET
 
@@ -45,11 +45,17 @@ def loads_s3_object_created_event(text):
         raise MissingEventFieldError(str(e))
 
 
-def validate_unprocessed_file_key(key):
+def parse_unprocessed_file_key(key):
+    match = re.match(r'^private/(.+)/submissionInbox/(.+)-(.+)\.json$', key)
+    if not match:
+        raise InvalidKeyFormat('Key does not match expected format')
+    user = match.group(1)
     try:
-        private, user, inbox, filename = (part for part in key.split('/') if part)
+        timestamp = dateutil.parser.parse(match.group(2))
     except ValueError as e:
         raise InvalidKeyFormat('Key does not match expected format') from e
+    upload_hash = match.group(3)
+    return user, timestamp, upload_hash
 
 
 def loads_s3_unprocessed_bucket_object_created_event(text):
@@ -67,18 +73,10 @@ def loads_s3_unprocessed_bucket_object_created_event(text):
                     bucket
                 )
             )
-        validate_unprocessed_file_key(key)
+        parse_unprocessed_file_key(key)
         return event
     except KeyError as e:
         raise MissingEventFieldError(str(e)) from e
-
-
-def parse_submission_time_from_key(key):
-    try:
-        private, user, inbox, filename = (part for part in key.split('/') if part)
-        return dateutil.parser.parse(posixpath.splitext(filename)[0])
-    except ValueError as e:
-        raise InvalidKeyFormat('Key does not match expected format') from e
 
 
 def create_minimal_valid_file_put_event(
