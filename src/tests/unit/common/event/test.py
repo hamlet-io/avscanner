@@ -2,7 +2,6 @@ import json
 import copy
 import datetime
 from unittest import mock
-import dateutil
 import pytest
 from processor.common import event
 
@@ -107,15 +106,23 @@ def test_loads_s3_unprocessed_bucket_object_created_event():
 
 
 def test_parse_unprocessed_file_key():
+
     with pytest.raises(event.InvalidEventError):
         event.parse_unprocessed_file_key('bad key')
     with pytest.raises(event.InvalidEventError):
-        event.parse_unprocessed_file_key('/user/2019-11-18T14:11:50+08:00-xxxxxxx.json')
-    with pytest.raises(event.InvalidEventError):
-        event.parse_unprocessed_file_key('/private/user/submissionInbox/2019-11-18T14:11:50+08:00.json')
+        event.parse_unprocessed_file_key('user/2019-11-18T14:11:50+08:00-xxxxxxx.json')
     with pytest.raises(event.InvalidEventError):
         event.parse_unprocessed_file_key('private/user/submissionInbox/2K18K-11-18T14:11:50+08:00-xxxxxxx.json')
+
+    # legacy format
+    event.parse_unprocessed_file_key('private/user/submissionInbox/2019-11-18T14:11:50+08:00.json')
+    # with leading slash
+    event.parse_unprocessed_file_key('/private/user/submissionInbox/2019-11-18T14:11:50+08:00.json')
+
+    # current format
     event.parse_unprocessed_file_key('private/user/submissionInbox/2019-11-18T14:11:50+08:00-xxxxxxx.json')
+    # with leading slash
+    event.parse_unprocessed_file_key('/private/user/submissionInbox/2019-11-18T14:11:50+08:00-xxxxxxx.json')
 
 
 def test_create_minimal_valid_file_put_event():

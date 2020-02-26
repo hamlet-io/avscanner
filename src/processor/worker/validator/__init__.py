@@ -98,7 +98,7 @@ class ValidatorWorker(QueuePollingWorker):
     def get_archive_key_from_event(self, event, prefix):
         obj = event['s3']['object']
         key = obj['key']
-        user, creation_time, upload_hash = common.event.parse_unprocessed_file_key(key)
+        user, creation_time = common.event.parse_unprocessed_file_key(key)
         localized_creation_time = creation_time.astimezone(self.TIMEZONE)
         self.logger.info(
             'Creation time: %s, Localized: %s, TZ: %s',

@@ -48,7 +48,7 @@ class UnprocessedFilesAuditorWorker:
         try:
             try:
                 # using filename to get time when it was submitted
-                user, submission_time, upload_hash = common.event.parse_unprocessed_file_key(key)
+                user, submission_time = common.event.parse_unprocessed_file_key(key)
                 submission_time = submission_time.astimezone(self.TIMEZONE)
             except common.event.InvalidKeyFormat:
                 # handling invalid key scenario, highly improbable, but may happen
