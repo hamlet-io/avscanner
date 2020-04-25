@@ -1,6 +1,7 @@
 import json
 import copy
 import datetime
+import dateutil
 from unittest import mock
 import pytest
 from processor.common import event
@@ -115,14 +116,33 @@ def test_parse_unprocessed_file_key():
         event.parse_unprocessed_file_key('private/user/submissionInbox/2K18K-11-18T14:11:50+08:00-xxxxxxx.json')
 
     # legacy format
-    event.parse_unprocessed_file_key('private/user/submissionInbox/2019-11-18T14:11:50+08:00.json')
+    user, timestamp, upload_hash = event.parse_unprocessed_file_key(
+        'private/user/submissionInbox/2019-11-18T14:11:50+08:00.json'
+    )
+    assert user == 'user'
+    assert timestamp == dateutil.parser.parse('2019-11-18T14:11:50+08:00')
+    assert upload_hash == ''
     # with leading slash
-    event.parse_unprocessed_file_key('/private/user/submissionInbox/2019-11-18T14:11:50+08:00.json')
-
+    user, timestamp, upload_hash = event.parse_unprocessed_file_key(
+        '/private/user/submissionInbox/2019-11-18T14:11:50+08:00.json'
+    )
+    assert user == 'user'
+    assert timestamp == dateutil.parser.parse('2019-11-18T14:11:50+08:00')
+    assert upload_hash == ''
     # current format
-    event.parse_unprocessed_file_key('private/user/submissionInbox/2019-11-18T14:11:50+08:00-xxxxxxx.json')
+    user, timestamp, upload_hash = event.parse_unprocessed_file_key(
+        'private/user/submissionInbox/2019-11-18T14:11:50+08:00-x1235x.json'
+    )
+    assert user == 'user'
+    assert timestamp == dateutil.parser.parse('2019-11-18T14:11:50+08:00')
+    assert upload_hash == 'x1235x'
     # with leading slash
-    event.parse_unprocessed_file_key('/private/user/submissionInbox/2019-11-18T14:11:50+08:00-xxxxxxx.json')
+    user, timestamp, upload_hash = event.parse_unprocessed_file_key(
+        '/private/user/submissionInbox/2019-11-18T14:11:50+08:00-x1235x.json'
+    )
+    assert user == 'user'
+    assert timestamp == dateutil.parser.parse('2019-11-18T14:11:50+08:00')
+    assert upload_hash == 'x1235x'
 
 
 def test_create_minimal_valid_file_put_event():

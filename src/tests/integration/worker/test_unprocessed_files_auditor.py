@@ -94,7 +94,7 @@ def test(get_utc_now, clear_queues, clear_buckets, fill_unprocessed_bucket):
         assert etag == file['ETag']
         assert size == file['ContentLength']
         assert bucket == unprocessed_filestore_dao.bucket.name
-        user, submission_time = processor.common.event.parse_unprocessed_file_key(key)
+        user, submission_time, upload_hash = processor.common.event.parse_unprocessed_file_key(key)
         submission_time = submission_time.astimezone(LOCAL_TZ).isoformat()
         assert (
             event_time

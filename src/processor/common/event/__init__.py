@@ -46,19 +46,25 @@ def loads_s3_object_created_event(text):
 
 
 def parse_unprocessed_file_key(key):
-    key_pattern = r'^/?private/(.+)/submissionInbox/(.+)-(.+)\.json$'
+
+    key_pattern = r'^/?private/(.+)/submissionInbox/(.+)-(\w+)\.json$'
     legacy_key_pattern = r'^/?private/(.+)/submissionInbox/(.+)\.json$'
-    match = re.match(key_pattern, key)
     # try to use legacy format, without upload hash
-    match = match or re.match(legacy_key_pattern, key)
+    match = re.match(key_pattern, key) or re.match(legacy_key_pattern, key)
     if not match:
         raise InvalidKeyFormat('Key does not match expected format')
+
     user = match.group(1)
     try:
         timestamp = dateutil.parser.parse(match.group(2))
     except ValueError as e:
         raise InvalidKeyFormat('Key does not match expected format') from e
-    return user, timestamp
+    try:
+        upload_hash = match.group(3)
+    except IndexError:
+        upload_hash = ''
+
+    return user, timestamp, upload_hash
 
 
 def loads_s3_unprocessed_bucket_object_created_event(text):
