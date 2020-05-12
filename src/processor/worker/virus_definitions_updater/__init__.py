@@ -35,15 +35,15 @@ class VirusDefinitionsUpdater:
         # Getting last modification time of the virus definition files
         logger.info('Recording last modification time of %s', VIRUS_DEFINITION_FILES)
         virus_definition_files_mtime = {}
-        missing_files = []
+        definition_files = []
         for basepath in VIRUS_DEFINITION_FILES:
             filename = os.path.join(VIRUS_DEFINITIONS_DIR, basepath)
+            definition_files.append(filename)
             if os.path.isfile(filename):
                 mtime = os.path.getmtime(filename)
                 virus_definition_files_mtime[filename] = mtime
                 logger.info('%s[%s]', basepath, mtime)
             else:
-                missing_files.append(filename)
                 logger.info('%s is missing', basepath)
 
         logger.info('Starting freshclam...')
@@ -71,21 +71,17 @@ class VirusDefinitionsUpdater:
             for filename, mtime in virus_definition_files_mtime.items():
                 if mtime < os.path.getmtime(filename):
                     updated_files.append(filename)
-            # Checking that missing files are created
-            missing_files_created = []
-            for filename in missing_files:
-                if os.path.isfile(filename):
-                    missing_files_created.append(filename)
             # creating the lists of missing and not updated files for better logging
             not_updated_files = [
                 os.path.relpath(f, VIRUS_DEFINITIONS_DIR)
                 for f in virus_definition_files_mtime.keys()
                 if f not in updated_files
             ]
-            missing_files = [
+            # check that all definition files exist
+            missing_definition_files = [
                 os.path.relpath(f, VIRUS_DEFINITIONS_DIR)
-                for f in missing_files
-                if f not in missing_files_created
+                for f in definition_files
+                if not os.path.isfile(f)
             ]
             # NOTE: changed log type from error to info because during frequent updates
             # it produces a lot of irrelevant log entries.
@@ -95,15 +91,16 @@ class VirusDefinitionsUpdater:
                     'but files %s are not updated. Probably files are up to date. ',
                     not_updated_files
                 )
-            # NOTE: missing files are critical errors because they will not allow clamd to start
-            if missing_files:
+            # NOTE: missing files are critical because they will not allow clamd to start
+            if missing_definition_files:
                 logger.error(
-                    'Not all missing files were created. '
-                    '%s are still missing. '
-                    'Please, inspect the problem.',
-                    missing_files
+                    'Required definition files %s are missing after update. '
+                    'This may cause clamd failure. '
+                    'Please ispect the problem. '
+                    'Details may be found in STDOUT and STDERR logs of freshclam process.',
+                    missing_definition_files
                 )
-            if not missing_files:
+            if not missing_definition_files:
                 logger.info('Virus definitions updated succesfully!')
                 return True
             else:
