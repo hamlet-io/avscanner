@@ -87,13 +87,15 @@ class VirusDefinitionsUpdater:
                 for f in missing_files
                 if f not in missing_files_created
             ]
+            # NOTE: changed log type from error to info because during frequent updates
+            # it produces a lot of irrelevant log entries.
             if not_updated_files:
-                logger.error(
+                logger.info(
                     'Virus definition update process finished succesfully, '
-                    'but files %s are not updated. Probably files are up to date. '
-                    'Please check STDOUT and STDERR logs.',
+                    'but files %s are not updated. Probably files are up to date. ',
                     not_updated_files
                 )
+            # NOTE: missing files are critical errors because they will not allow clamd to start
             if missing_files:
                 logger.error(
                     'Not all missing files were created. '
@@ -101,7 +103,7 @@ class VirusDefinitionsUpdater:
                     'Please, inspect the problem.',
                     missing_files
                 )
-            if not (not_updated_files or missing_files):
+            if not missing_files:
                 logger.info('Virus definitions updated succesfully!')
                 return True
             else:

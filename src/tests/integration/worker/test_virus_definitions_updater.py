@@ -61,8 +61,9 @@ def test_mocked(Popen):
         Popen.assert_called_once()
         Popen.reset_mock()
         # testing no updater error, but files not updated
+        # NOTE: should not be considered an error
         Popen.side_effect = None
-        assert not VirusDefinitionsUpdater().run()
+        assert VirusDefinitionsUpdater().run()
         Popen.assert_called_once()
         Popen.reset_mock()
         # testing missing env var VIRUS_DEFINITIONS_DIR
