@@ -2,27 +2,24 @@
 
 ## Description
 
-Validate and archive files put into passport scanner data s3 bucket.
+Virus-scan files that arrive in an S3 bucket, and either move the file to quarantine or dispatch a validation task to a queue. 
 
 ## Structure:
 
-Project consists of 3 workers and 2 queues, 3 buckets. Both queues used to pass s3 object created event to workers.
+Project consists of 1 workers and 2 queues, 2 buckets. Both queues used to pass s3 object created event to workers.
 
 ##### Note:
 Buckets and queues names provided in default `.env` file located at the project root directory.
 Also `.env` file contains connection parameters for both sqs and s3 as well as file prefixes/directories.
 
 #### Workers:
-1. Archiver - archives valid data files on a monthly basis.
-1. Validator - validates data files format.
 1. Virus scanner - checks that data files are not viruses.
 
 #### Queues:
-1. Virus scanning queue - receives initial object created event in passport scanner data bucket.
-1. Validation queue - receives events after virus scanner worker verified that file is not a virus.
+1. Inbound queue - receives initial object created event in passport scanner data bucket.
+1. Outbound queue - receives events after virus scanner worker verified that file is not a virus.
 
 #### Buckets:
-1. Archive - contains files which passed virus scanning.
 1. Quarantine - contains potentially hazardous files/viruses.
 1. Unprocessed - contains raw unprocessed files which virus scanner and validator workers will process.
 
@@ -30,22 +27,18 @@ Also `.env` file contains connection parameters for both sqs and s3 as well as f
 1. Virus - notifies subscribers about detection of a virus in the unprocessed bucket
 
 ##### Note:
-Passport scanner data bucket files must always have the next key structure:
+Unprocessed bucket files expect to have the key structure:
 
- `<year>/<month>/<day>/<user>/<filename>`.
+ `<submission_guid>/<filename>`.
 
 Otherwise event will be considered invalid and removed from the queue and file will not be processed.
 
 # General workflow:
-1. Object created in the passport scanner data bucket.
+1. Object created in the unprocessed  data bucket.
 1. Object created event gets posted into virus scanning queue.
 1. Virus scanner worker pulls the event from virus scanning queue and performs virus scan.
 1. Non virus files object created events forwarded into validation queue.
 1. Virus files moved to quarantine bucket. Virus notification sent, copy of notification stored alongside quarantined files as `<filename>.report.json`.
-1. Validator worker pulls event from validation queue and performs validation.
-1. Valid files saved to archive bucket with `valid/` key prefix.
-1. Invalid files saved to archive bucket with `invalid/` key prefix.
-1. Then once a month archer worker starts, grabs files from archive bucket by common prefix `valid/<year>/<previous_month>`, compresses them, deletes them from the bucket and post compressed archive as a single file as `compressed/<year>/<previous_month>/archive.zip`.
 
 ##### Note:
 Successfully processed events always deleted from the workers queues. The only situation when file remains in the queue after a worker started processing is an unexpected error which may be caused by an auto-scaling group which may shut down the worker before it finished event processing.
@@ -55,7 +48,6 @@ Successfully processed events always deleted from the workers queues. The only s
 Make sure you have modern docker installation (if you get some weird errors about Dockefile syntax - upgrade it).
 Also, after you have run `make run` - ensure that local directories for buckets are created. To do it check the `.env` file, read values of next variables and create these directories in the `minio/data`:
 
-* ARCHIVE_BUCKET_NAME
 * QUARANTINE_BUCKET_NAME
 * UNPROCESSED_BUCKET_NAME
 
