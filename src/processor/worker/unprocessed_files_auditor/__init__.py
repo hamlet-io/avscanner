@@ -46,23 +46,14 @@ class UnprocessedFilesAuditorWorker:
         file = None
         submission_time = None
         try:
-            try:
-                # using filename to get time when it was submitted
-                user, submission_time, upload_hash = common.event.parse_unprocessed_file_key(key)
-                submission_time = submission_time.astimezone(self.TIMEZONE)
-            except common.event.InvalidKeyFormat:
-                # handling invalid key scenario, highly improbable, but may happen
-                self.logger.error('Invalid key format: %s. Loading file to check last mod time', key)
-                file = self.load_file(key)
-                submission_time = file['LastModified'].astimezone(self.TIMEZONE)
+            file = self.load_file(key)
+            submission_time = file['LastModified'].astimezone(self.TIMEZONE)
 
             self.logger.info('File submission time:%s', submission_time.isoformat())
             if now - submission_time < datetime.timedelta(seconds=self.RESEND_INTERVAL):
                 self.logger.info('Event resend is not needed')
                 return
-            # saving time if file loaded in invalid key scenario
-            if not file:
-                file = self.load_file(key)
+
             # creating mininal required fields in event
             event = common.event.create_minimal_valid_file_put_event(
                 key=key,
