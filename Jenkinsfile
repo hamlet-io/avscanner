@@ -109,7 +109,7 @@ pipeline {
                     post {
                         always {
                             dir("${env.DOCKER_BUILD_DIR}") {
-                                recordIssues enabledForFailure: true, qualityGates: [[threshold: 1, type: 'TOTAL', unstable: false]], tool: flake8(pattern: 'src/flake8.txt')
+                                recordIssues enabledForFailure: true, qualityGates: [[threshold: 1, type: 'TOTAL', unstable: false]], tool: flake8(pattern: 'flake8.txt')
                             }
                         }
                     }
@@ -267,80 +267,6 @@ pipeline {
                         channel: "${env["slack_channel"]}",
                         color: "#50C878"
                     )
-                }
-            }
-        }
-        stage('utility - CloudwatchSlack' ) {
-
-            // we always force the cloudwatch slack instance since it doesn't change much
-            when {
-                equals expected: true, actual: params.force_cloudwatch_slack
-            }
-
-            environment {
-                //hamlet deployment variables
-                deployment_units = 'alert-slack'
-                segment = 'default'
-                image_format = 'lambda'
-
-                GENERATION_CONTEXT_DEFINED = ''
-
-                BUILD_PATH = "build/cloudwatch-slack"
-                BUILD_SRC_DIR = ''
-            }
-
-            steps {
-
-                dir('build/cloudwatch-slack') {
-                    script {
-                        def repo = git changelog: false, poll: false, url: 'https://github.com/codeontap/lambda-cloudwatch-slack'
-                        env['GIT_COMMIT'] = repo.GIT_COMMIT
-                    }
-
-                    sh '''#!/bin/bash
-                        npm ci
-                        npx serverless package
-
-                        if [[ -f .serverless/cloudwatch-slack.zip ]]; then
-                            mkdir -p dist
-                            cp .serverless/cloudwatch-slack.zip dist/lambda.zip
-                        else
-                            echo "lambda not found!!!"
-                            exit 255
-                        fi
-                    '''
-
-                    script {
-                        def contextProperties = readProperties interpolate: true, file: "${properties_file}" ;
-                        contextProperties.each{ k, v -> env["${k}"] ="${v}" }
-                    }
-
-                    sh '''#!/bin/bash
-                    ${AUTOMATION_BASE_DIR}/setContext.sh || exit $?
-                    '''
-
-                    script {
-                        def contextProperties = readProperties interpolate: true, file: "${WORKSPACE}/context.properties";
-                        contextProperties.each{ k, v -> env["${k}"] ="${v}" }
-                    }
-
-                    sh '''#!/bin/bash
-                    ${AUTOMATION_DIR}/manageImages.sh -g "${GIT_COMMIT}" -u "${deployment_units}" -f "${image_format}"  || exit $?
-                    '''
-
-                    script {
-                        def contextProperties = readProperties interpolate: true, file: "${WORKSPACE}/context.properties";
-                        contextProperties.each{ k, v -> env["${k}"] ="${v}" }
-                    }
-
-                    build job: '../../deploy/integration-deploy', wait: false, parameters: [
-                        extendedChoice(name: 'DEPLOYMENT_UNITS', value: "${env.deployment_units}"),
-                        string(name: 'GIT_COMMIT', value: "${env.GIT_COMMIT}"),
-                        booleanParam(name: 'AUTODEPLOY', value: true),
-                        string(name: 'IMAGE_FORMATS', value: "${env.image_format}"),
-                        string(name: 'SEGMENT', value: "${env.segment}" )
-                    ]
-
                 }
             }
         }
