@@ -2,7 +2,7 @@
 
 // Deployment units for this code repo
 def deploymentUnits = [
-    'processor-v1-validator', 'processor-v1-avscanner', 'processor-v1-archiver'
+    'avscanner'
 ]
 
 pipeline {
@@ -60,11 +60,14 @@ pipeline {
 
                 stage('Run Testing') {
                     steps {
-                        dir("${env.DOCKER_BUILD_DIR}") {
-                            sh '''#!/bin/bash
-                            # Testing
-                            docker-compose --no-ansi up --build --remove-orphans --exit-code-from processor
-                            '''
+                        catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
+                            dir("${env.DOCKER_BUILD_DIR}") {
+                                // running tests using entrypoint-ci.sh as entrypoint script, see docker-compose-ci.yml
+                                sh '''#!/bin/bash
+                                # Testing
+                                docker-compose --no-ansi up --build --remove-orphans --exit-code-from processor 
+                                '''
+                            }
                         }
                     }
 
@@ -86,18 +89,18 @@ pipeline {
                                 }
 
                                 publishChecks name: 'Tests', conclusion: "${env.CHECK_CONCLUSION}", title: "Test Summary - ${env.TOTAL_COUNT}, Failures: ${env.FAIL_COUNT}, Skipped: ${env.SKIP_COUNT}, Passed: ${env.PASS_COUNT}", summary: 'test results', text: "Test Summary - ${env.TOTAL_COUNT}, Failures: ${env.FAIL_COUNT}, Skipped: ${env.SKIP_COUNT}, Passed: ${env.PASS_COUNT}"
-                                /*publishCoverage adapters: [coberturaAdapter('src/coverage.xml')]*/
+                                publishCoverage adapters: [coberturaAdapter('src/coverage.xml')]
                             }
                         }
                     }
                 }
 
-                /*stage('Style') {
+                stage('Style') {
                     steps {
                         catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
                             dir("${env.DOCKER_BUILD_DIR}") {
                                 sh '''#!/bin/bash
-                                docker-compose run django flake8 --output-file=flake8.txt
+                                flake8 --output-file=flake8.txt
                                 '''
                             }
                         }
@@ -110,7 +113,7 @@ pipeline {
                             }
                         }
                     }
-                }*/
+                }
             }
 
             post {
