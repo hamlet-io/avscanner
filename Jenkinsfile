@@ -60,14 +60,12 @@ pipeline {
 
                 stage('Run Testing') {
                     steps {
-                        catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
-                            dir("${env.DOCKER_BUILD_DIR}") {
-                                // running tests using entrypoint-ci.sh as entrypoint script, see docker-compose-ci.yml
-                                sh '''#!/bin/bash
-                                # Testing
-                                docker-compose --no-ansi up --build --remove-orphans --exit-code-from processor 
-                                '''
-                            }
+                        dir("${env.DOCKER_BUILD_DIR}") {
+                            // running tests using entrypoint-ci.sh as entrypoint script, see docker-compose-ci.yml
+                            sh '''#!/bin/bash
+                            # Testing
+                            docker-compose --no-ansi up --build --remove-orphans --exit-code-from processor 
+                            '''
                         }
                     }
 
