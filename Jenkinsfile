@@ -24,9 +24,6 @@ pipeline {
     }
 
     environment {
-        DOCKER_STAGE_DIR = '/temp/docker'
-        DOCKER_BUILD_DIR = "${env.DOCKER_STAGE_DIR}/${BUILD_TAG}"
-
         properties_file = '/var/opt/properties/biosecurity.properties'
         slack_channel = '#bio-integration'
     }
@@ -43,7 +40,7 @@ pipeline {
             stages {
                 stage('Setup') {
                     steps {
-                        dir("${env.DOCKER_BUILD_DIR}") {
+                        dir('test') {
                             script {
                                 def codeRepo = checkout scm
                                 env["GIT_COMMIT"] = codeRepo.GIT_COMMIT
@@ -60,7 +57,7 @@ pipeline {
 
                 stage('Run Testing') {
                     steps {
-                        dir("${env.DOCKER_BUILD_DIR}") {
+                        dir('test') {
                             // running tests using entrypoint-ci.sh as entrypoint script, see docker-compose-ci.yml
                             sh '''#!/bin/bash
                             # Testing
@@ -71,7 +68,7 @@ pipeline {
 
                     post {
                         always {
-                            dir("${env.DOCKER_BUILD_DIR}"){
+                            dir('test'){
                                 script {
                                     def summary = junit 'src/test-report.xml'
                                     env['CHECK_STATUS'] = "FAILURE"
@@ -96,7 +93,7 @@ pipeline {
                 stage('Style') {
                     steps {
                         catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
-                            dir("${env.DOCKER_BUILD_DIR}") {
+                            dir('test') {
                                 sh '''#!/bin/bash
                                 flake8 --output-file=flake8.txt
                                 '''
@@ -106,7 +103,7 @@ pipeline {
 
                     post {
                         always {
-                            dir("${env.DOCKER_BUILD_DIR}") {
+                            dir('test') {
                                 recordIssues enabledForFailure: true, qualityGates: [[threshold: 1, type: 'TOTAL', unstable: false]], tool: flake8(pattern: 'flake8.txt')
                             }
                         }
@@ -123,7 +120,7 @@ pipeline {
                     )
                 }
                 cleanup {
-                    dir("${env.DOCKER_BUILD_DIR}") {
+                    dir('test') {
                         sh '''#!/bin/bash
                         if [[ -n "${COMPOSE_FILE}" ]]; then
                             docker-compose down --rmi local -v --remove-orphans
