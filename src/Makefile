@@ -25,4 +25,5 @@ coverage:
 .PHONY: test-ci
 .ONESHELL:
 test-ci:
-	@ python -m pytest tests --junitxml=test-report.xml --cov --cov-report=html
+
+	@ python -m pytest tests --junitxml=test-report.xml --cov --cov-report=xml
