@@ -33,6 +33,11 @@ function main() {
     esac
 
 }
+
+# beign able to write to /dev/stdout not only by root user
+# https://github.com/moby/moby/issues/31243
+chmod o+w /dev/stdout
+
 # echo "Sleeping to prevent exit..."
 # while true; do sleep 10s; done
 # recording start timestamp to use it in the worker's logs
