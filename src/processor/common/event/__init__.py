@@ -47,7 +47,7 @@ def loads_s3_object_created_event(text):
 
 def parse_unprocessed_file_key(key):
 
-    key_pattern = r'^([^\/\s]+)\/([^\/\s]+)\.(\w+)$'
+    key_pattern = r'^([^\/\s]+)\/(([^\/\s]+)\/)*([^\/\s]+)\.(\w+)$'
     # try to use legacy format, without upload hash
     match = re.match(key_pattern, key)
     if not match:
