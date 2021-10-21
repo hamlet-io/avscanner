@@ -24,7 +24,7 @@ jobs:
 
       - name: Run Tests
         env:
-          COMPOSE_FILE="docker-compose.yml:docker-compose-ci.yml"
+          COMPOSE_FILE: "docker-compose.yml:docker-compose-ci.yml"
         run: |
           docker-compose --no-ansi up --build --remove-orphans --exit-code-from processor
       - name: Test Results
